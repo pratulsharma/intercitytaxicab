@@ -1,0 +1,133 @@
+<!doctype html>
+<!--
+  WHAT: A live CSS playground. Open this file by double-clicking it (needs internet for the Tailwind script).
+  WHY:  Seeing a class change the page beats reading about it.
+  HOW:  Each demo prints its classes. Edit the class="..." text in VS Code, save, refresh the browser.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS Lab: Shubh Yatra Cabs</title>
+  <!-- Tailwind's browser build: turns the class names into CSS on the fly. Only for learning, not for the real app. -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-100 p-6 text-slate-900">
+  <h1 class="mb-2 text-3xl font-bold">CSS Lab</h1>
+  <p class="mb-8 text-slate-600">Edit any class="..." in this file, save, refresh. Break things on purpose.</p>
+
+  <!-- 1. BOX MODEL -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">1. Every element is a box (margin → border → padding → content)</h2>
+    <p class="mb-3 text-sm text-slate-600">Try changing p-6 to p-1 or p-12. Padding is space INSIDE the border; margin is space OUTSIDE.</p>
+    <div class="bg-rose-100 p-4">
+      <p class="mb-1 text-xs">pink area = the parent (so you can see the margin gap)</p>
+      <div class="m-4 border-4 border-slate-800 bg-amber-100 p-6">
+        <code class="text-xs">class="m-4 border-4 p-6"</code>
+        <div class="mt-2 bg-white p-2">content</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SPACING SCALE -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">2. Spacing scale: 1 unit = 4px</h2>
+    <p class="mb-3 text-sm text-slate-600">w-8 is 32px, w-16 is 64px, w-32 is 128px.</p>
+    <div class="space-y-2">
+      <div class="h-6 w-8 bg-amber-600 text-xs text-white">w-8</div>
+      <div class="h-6 w-16 bg-amber-600 text-xs text-white">w-16</div>
+      <div class="h-6 w-32 bg-amber-600 text-xs text-white">w-32</div>
+      <div class="h-6 w-64 bg-amber-600 text-xs text-white">w-64</div>
+    </div>
+  </section>
+
+  <!-- 3. TEXT AND COLOUR -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">3. Text size, weight and colour</h2>
+    <p class="mb-3 text-sm text-slate-600">Colour shades run 50 (lightest) to 950 (darkest).</p>
+    <div class="rounded-lg bg-white p-4">
+      <p class="text-sm">text-sm (14px)</p>
+      <p class="text-lg">text-lg (18px)</p>
+      <p class="text-2xl font-bold">text-2xl font-bold (24px)</p>
+      <p class="text-4xl font-bold">text-4xl font-bold (36px)</p>
+      <div class="mt-3 flex">
+        <div class="h-8 w-12 bg-amber-50"></div><div class="h-8 w-12 bg-amber-200"></div>
+        <div class="h-8 w-12 bg-amber-400"></div><div class="h-8 w-12 bg-amber-600"></div>
+        <div class="h-8 w-12 bg-amber-800"></div><div class="h-8 w-12 bg-amber-950"></div>
+      </div>
+      <p class="text-xs text-slate-500">amber-50, 200, 400, 600, 800, 950</p>
+    </div>
+  </section>
+
+  <!-- 4. FLEXBOX -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">4. Flexbox: put items in a row or column</h2>
+    <p class="mb-3 text-sm text-slate-600">flex = row. justify-* moves items along the row. items-* moves them across it.</p>
+    <p class="text-xs">flex justify-between items-center (the Header uses this)</p>
+    <div class="mb-3 flex items-center justify-between rounded bg-white p-3">
+      <span class="rounded bg-amber-200 p-2">A</span><span class="rounded bg-amber-200 p-2">B</span>
+    </div>
+    <p class="text-xs">flex justify-center gap-4</p>
+    <div class="mb-3 flex justify-center gap-4 rounded bg-white p-3">
+      <span class="rounded bg-amber-200 p-2">A</span><span class="rounded bg-amber-200 p-2">B</span>
+      <span class="rounded bg-amber-200 p-2">C</span>
+    </div>
+    <p class="text-xs">flex flex-col items-center gap-2 (column, centered; the Day 1 page uses this)</p>
+    <div class="flex flex-col items-center gap-2 rounded bg-white p-3">
+      <span class="rounded bg-amber-200 p-2">A</span><span class="rounded bg-amber-200 p-2">B</span>
+    </div>
+  </section>
+
+  <!-- 5. GRID + RESPONSIVE -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">5. Grid and responsive: resize the window!</h2>
+    <p class="mb-3 text-sm text-slate-600">1 column on phones, 2 from 640px, 3 from 1024px. This is the route-card grid.</p>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">Card 1</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">Card 2</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">Card 3</div>
+    </div>
+  </section>
+
+  <!-- 6. STATES -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">6. Hover states and the button style</h2>
+    <p class="mb-3 text-sm text-slate-600">hover:bg-amber-800 only applies while the mouse is over it.</p>
+    <a href="#" class="inline-block rounded-lg bg-amber-700 px-6 py-3 font-semibold text-white hover:bg-amber-800">See routes</a>
+  </section>
+
+  <!-- 7. CENTERING -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">7. Centering a width-limited block</h2>
+    <p class="mb-3 text-sm text-slate-600">max-w-xl limits width; mx-auto centers it. Remove mx-auto and see it jump left.</p>
+    <p class="mx-auto max-w-xl rounded bg-white p-3 text-center">I am at most 36rem wide and centered.</p>
+  </section>
+
+  <!-- 8. FORM LAYOUT (Day 3 practice) -->
+  <section class="mb-10">
+    <h2 class="mb-1 text-xl font-bold">8. Form layout (Day 3): resize the window</h2>
+    <p class="mb-3 text-sm text-slate-600">1 column on phones, 2 from 640px, 4 from 1024px. Try changing lg:grid-cols-4 to lg:grid-cols-2. Click into a field to see the focus ring.</p>
+    <form class="mx-auto max-w-4xl rounded-2xl bg-white p-5 text-left shadow-lg">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <label for="lab-from" class="block text-sm font-medium text-slate-700">From</label>
+          <select id="lab-from" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-200"><option>Haridwar</option><option>Rishikesh</option></select>
+        </div>
+        <div>
+          <label for="lab-to" class="block text-sm font-medium text-slate-700">To</label>
+          <select id="lab-to" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-200"><option>Badrinath</option><option>Kedarnath</option></select>
+        </div>
+        <div>
+          <label for="lab-date" class="block text-sm font-medium text-slate-700">Travel date</label>
+          <input id="lab-date" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-200" />
+        </div>
+        <div>
+          <label for="lab-pax" class="block text-sm font-medium text-slate-700">Passengers</label>
+          <input id="lab-pax" type="number" min="1" max="12" value="2" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-200" />
+        </div>
+      </div>
+      <button type="button" class="mt-5 w-full rounded-lg bg-amber-700 px-8 py-3 font-semibold text-white hover:bg-amber-800 sm:w-auto">Search cabs</button>
+    </form>
+  </section>
+</body>
+</html>
