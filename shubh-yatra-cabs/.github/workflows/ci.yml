@@ -1,0 +1,23 @@
+# This workflow runs whenever we create a PR or puch the code to develop or main branch
+# It does not run when we push the code to any other branch
+
+name : CI
+on:
+  pull_request:    # pull request to any branch / ne wor update 
+  push:
+    branches: [main, develop]
+
+jobs:
+  check:           # name of our job 
+    runs-on: ubuntu-latest   # the machine on which the job runs -> brand new ubuntu owned by github 
+    steps:
+      - uses: actions/checkout@v6 # "uses" someones readymade action; this downloads our repos code on empty machine 
+      - uses: actions/setup-node@v7 # another readymade action; this one sets up node on the empty machine 
+        with:
+          node-version: 22
+          cache: npm          # better to cache the node environment so that for every run we don't reinstall node
+
+      - run: npm ci         # this one installs libraries ; this installs fresh version based on the lock file
+      - run: npm run lint
+      - run: npm run build  # build the package
+
