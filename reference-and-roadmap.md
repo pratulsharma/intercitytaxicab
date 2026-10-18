@@ -76,10 +76,10 @@ All of that is a **team project of several months**. You are one complete beginn
 | | 3 | Search form layout *(written)* | grid, form fields |
 | | 4 | JavaScript basics *(written)* | functions, arrays and objects |
 | | 5 | **Review day**; array tools, `pickOptions`, Week 1 checkpoint *(written)* | filter / map / sort, pure functions |
-| **2 React and Next** | 6 | TypeScript basics | types, interfaces |
-| | 7 | React components and props | props |
-| | 8 | State and events | `useState` |
-| | 9 | SearchForm (From, To, date, passengers) | controlled inputs |
+| **2 React and Next** | 6 | TypeScript basics *(written)* | types, unions, `undefined` handling |
+| | 7 | Typed props and reusable components *(written)* | typed props, extracting components |
+| | 8 | State and events *(written)* | `useState`, events |
+| | 9 | SearchForm (From, To, date, passengers) *(written)* | controlled inputs, lifting state up |
 | | 10 | **Review day**; Next.js routing and `searchParams` → `/results` with sample data | routing, URL params |
 | **3 Results and booking UI** | 11 | Validation with Zod | schemas |
 | | 12 | Results page: OptionCard, loading, empty, error states | UI states |

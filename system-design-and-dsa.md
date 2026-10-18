@@ -47,7 +47,7 @@ sequenceDiagram
   participant D as Postgres
   participant M as Email
   B->>S: from, to, date, passengers, vehicleTypeId, name, phone, idempotencyKey
-  S->>S: validate; NEVER trust a price sent by the browser
+  S->>S: validate, and NEVER trust a price sent by the browser
   S->>D: recompute price from fares table
   S->>D: insert booking (unique idempotencyKey, status = requested)
   D-->>S: booking id + reference

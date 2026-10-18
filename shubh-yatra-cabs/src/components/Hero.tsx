@@ -1,5 +1,5 @@
 // This  hero section is called hero because its designed to grab attention
-
+import {SearchForm} from './SearchForm'
 export const Hero = () => {
   return (
     <section className="text-center bg-amber-50 border-slate-300 px-6 py-20 ">
@@ -15,6 +15,7 @@ export const Hero = () => {
       >
         See routes
       </a>
+      <SearchForm/>
     </section>
   );
 };
