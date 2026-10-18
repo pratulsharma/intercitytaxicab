@@ -17,7 +17,7 @@ Fill this in as you go. It is **your** record, so be honest: the point is to see
 | Days completed / 40 | |
 | Average hours per day | |
 | Longest streak (days) | |
-| Interview questions ticked | / |
+| Interview questions ticked | / 72 |
 | DSA problems solved | / 40 |
 
 ## 2. Daily log
@@ -159,7 +159,47 @@ Tick when you can answer in under a minute **without looking**. The answers are 
 - [ ] Why is server-side logic safer than browser-side for prices?
 - [ ] (Behavioural) Tell me about rebuilding something from memory.
 
-### Days 6–40
+### Day 6 ([day-06.md](./day-06.md))
+- [ ] What problem does TypeScript solve?
+- [ ] `type` vs `interface`?
+- [ ] What is a union type? Give an example.
+- [ ] What does `string | undefined` mean, and how do you handle it?
+- [ ] What do `?.` and `??` do?
+- [ ] Are TypeScript types checked at runtime?
+- [ ] (System design) Why share one `SearchInput` type between the form and the server?
+- [ ] (Behavioural) Tell me about a bug the compiler caught for you.
+
+### Day 7 ([day-07.md](./day-07.md))
+- [ ] What are props?
+- [ ] What is the `children` prop?
+- [ ] How do you make a prop optional and give it a default?
+- [ ] When would you extract a component?
+- [ ] Why use `Record<Variant, string>` for styles?
+- [ ] Why set `type="button"` on a button in a form?
+- [ ] (System design) What does "separation of concerns" mean and why does it help?
+- [ ] (Behavioural) Tell me about refactoring code without changing how it behaves.
+
+### Day 8 ([day-08.md](./day-08.md))
+- [ ] What is state in React?
+- [ ] Why can't you just write `count++`?
+- [ ] When do you use the function form `setCount(c => c + 1)`?
+- [ ] What does `"use client"` do?
+- [ ] What is derived state and why avoid storing it?
+- [ ] Props vs state?
+- [ ] (System design) What is the difference between client state and server state?
+- [ ] (Behavioural) Tell me about a time something worked in one place and not another, and how you found out why.
+
+### Day 9 ([day-09.md](./day-09.md))
+- [ ] What is a controlled input?
+- [ ] Controlled vs uncontrolled?
+- [ ] What does "lifting state up" mean?
+- [ ] Why do we copy state objects (`{ ...search, from }`) instead of changing them?
+- [ ] What does `event.preventDefault()` do on a form submit?
+- [ ] Why validate on both the client and the server?
+- [ ] (System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?
+- [ ] (Behavioural) Tell me about a feature you made more robust by thinking about bad input.
+
+### Days 10–40
 I add 6 or more questions here each week, copied from that week's day files, with a short list of topics you should now be able to speak about:
 
 | Week | Topics you should be able to explain at the end |

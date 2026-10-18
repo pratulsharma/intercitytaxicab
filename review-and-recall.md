@@ -12,7 +12,7 @@ Re-reading feels like learning but isn't. **Pulling answers out of your own head
 
 **How to answer:** on paper or aloud, **before** opening the answer. Write a score next to each card: ✅ knew it, 🟡 partly, ❌ missed. Cards you miss come back the next day. Cards you get right three times in a row move to "every 2 weeks".
 
-## 2. Spaced schedule (when each Week 1 topic comes back)
+## 2. Spaced schedule (when each topic comes back)
 | Topic first learned | Review on |
 |---|---|
 | Day 1 (Git, CI, routing) | Day 2, Day 4, Day 8, Day 15 |
@@ -20,8 +20,12 @@ Re-reading feels like learning but isn't. **Pulling answers out of your own head
 | Day 3 (grid, forms) | Day 4, Day 7, Day 10, Day 15 |
 | Day 4 (JavaScript, money formatting) | Day 5, Day 8, Day 11, Day 15 |
 | Day 5 (array tools, pure functions) | Day 6, Day 9, Day 12, Day 15 |
+| Day 6 (TypeScript types, `?.` and `??`) | Day 7, Day 9, Day 13, Day 20 |
+| Day 7 (typed props, `children`, extracting components) | Day 8, Day 11, Day 14, Day 20 |
+| Day 8 (`useState`, events, `"use client"`) | Day 9, Day 12, Day 15, Day 20 |
+| Day 9 (controlled inputs, lifting state up, validation) | Day 10, Day 13, Day 16, Day 20 |
 
-For later weeks, I add a new section to this file when I write that week.
+For Days 10 onward, I add the new topics to this table when I write that week.
 
 ## 3. Flashcard bank: Week 1
 Cover the answer, say yours aloud, then open it.
@@ -86,6 +90,57 @@ Cover the answer, say yours aloud, then open it.
 5. **In `pickOptions`, why filter by seats before sorting by price?**
    <details><summary>Answer</summary>Fewer items to sort, and a cheap car that can't fit the group should never appear.</details>
 
+## 3b. Flashcard bank: Week 2 (Days 6–9)
+Same method: cover the answer, say yours aloud, then open it.
+
+### Day 6: TypeScript basics
+1. **What does `type VehicleType = "sedan" | "suv" | "tempo"` stop you from doing?**
+   <details><summary>Answer</summary>Using any other value, such as `"bus"` or a typo like `"suvv"`. It is a compile error.</details>
+2. **`cities.find(...)` returns what type, and how do you use the result safely?**
+   <details><summary>Answer</summary>`string | undefined`. Check it (`if (x !== undefined)`), use `x?.something`, or give a fallback with `x ?? "default"`.</details>
+3. **What do `?.` and `??` each do?**
+   <details><summary>Answer</summary>`?.` stops and gives `undefined` if the left side is missing. `??` uses the right side when the left is `undefined` or `null`.</details>
+4. **Are types checked while the site is running?**
+   <details><summary>Answer</summary>No. They are erased. Data from outside (forms, URLs, APIs) must still be validated at runtime.</details>
+5. **Why store a city as a slug (`"haridwar"`) and not its display name?**
+   <details><summary>Answer</summary>A slug is a stable id. Renaming "Kedarnath (Sonprayag)" doesn't break saved searches or fare rows.</details>
+
+### Day 7: components and typed props
+1. **How do you make a prop optional with a default?**
+   <details><summary>Answer</summary>`?` in the type and a default when destructuring: `{ variant = "primary" }`.</details>
+2. **What is `children`?**
+   <details><summary>Answer</summary>Whatever is written between a component's opening and closing tags.</details>
+3. **What does `Record<ButtonVariant, string>` guarantee?**
+   <details><summary>Answer</summary>An entry exists for every variant, so adding a variant and forgetting its style fails to compile.</details>
+4. **When should you extract a component?**
+   <details><summary>Answer</summary>When the same markup repeats, or one piece has a clear single job and the file is getting hard to read.</details>
+5. **Why must a label's `htmlFor` match the input's `id`?**
+   <details><summary>Answer</summary>So clicking the label focuses the input and screen readers know which label belongs to which field.</details>
+
+### Day 8: state and events
+1. **What does `useState(0)` give you?**
+   <details><summary>Answer</summary>A pair: the current value and the only function that should change it.</details>
+2. **`onClick={setCount(count + 1)}` is wrong. Why, and what is right?**
+   <details><summary>Answer</summary>It calls the setter immediately while drawing. Pass a function: `onClick={() => setCount(count + 1)}`.</details>
+3. **Two `setCount(count + 1)` in one click add how much? How do you fix it?**
+   <details><summary>Answer</summary>Only 1, because both read the same old value. Use `setCount((current) => current + 1)`.</details>
+4. **What does `"use client"` do?**
+   <details><summary>Answer</summary>Makes the file (and what it imports) run in the browser, which state and click handlers need.</details>
+5. **What is derived state and why is `carsThatFit` an example?**
+   <details><summary>Answer</summary>A value calculated from existing state on every draw. Storing it separately would let it drift out of sync with `count`.</details>
+
+### Day 9: controlled inputs and validation
+1. **What makes an input "controlled"?**
+   <details><summary>Answer</summary>Its `value` comes from React state and `onChange` reports every change back to that state.</details>
+2. **What does "lifting state up" mean, and why did the stepper lose its `useState`?**
+   <details><summary>Answer</summary>Shared state moves to the closest common parent. The form needs the passenger count to validate and search, so the form owns it and passes `value` and `onChange` down.</details>
+3. **Why `change({ ...search, from })` and not `search.from = from`?**
+   <details><summary>Answer</summary>React redraws when it sees a new value. Editing in place gives it nothing new, so the screen goes stale (and the linter flags it).</details>
+4. **Why is `today` passed into `validateSearch` instead of read inside it?**
+   <details><summary>Answer</summary>That keeps it a pure function: same input, same output, easy to test with any date.</details>
+5. **If browser validation can be bypassed, why write it?**
+   <details><summary>Answer</summary>It gives instant, friendly feedback. The server repeats the checks because the server is the real gate.</details>
+
 ## 4. Weekly review-day template (copy into `docs/week-XX-review.md`)
 1. **Score:** quiz result and the cards I missed.
 2. **Rebuild from memory:** what I rebuilt (no looking), how long it took, what I forgot.
@@ -93,10 +148,16 @@ Cover the answer, say yours aloud, then open it.
 4. **Draw it:** this week's data flow on paper, then compare with the diagram in the day file.
 5. **Top 3 gaps and the plan to fix them** (which buffer day or which cards).
 
-## 5. Teach-back prompts for Week 1
+## 5. Teach-back prompts
+### Week 1
 - "How does the browser go from typing a URL to seeing the home page?"
 - "How does the price get from `routes.ts` to the screen as `₹1,200`?"
 - "What happens when I push a branch to GitHub?"
+
+### Week 2 so far
+- "What is the difference between props and state? Use the passenger stepper as the example."
+- "Walk through what happens, step by step, from clicking Search with a past date to seeing the red message."
+- "Why does the search form own the passenger count instead of the stepper?"
 
 ## 6. Rules for how this grows
 - Every review day (5, 10, 15 ...) has a cumulative quiz of 10 questions that includes at least 3 from earlier weeks.
