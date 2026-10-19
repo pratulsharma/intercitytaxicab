@@ -12,12 +12,14 @@
 1. `filter` vs `map`: what does each return?
 2. Does `sort` change the array it is called on?
 3. What makes `pickOptions` a pure function?
+4. What does the find on an array do? does it return the item or the array?
 
 <details><summary>Answers</summary>
 
 1. `filter` returns a shorter array of the items that pass the test; `map` returns a same-length array of transformed items.
 2. Yes, it reorders the original, so copy first (`[...list].sort(...)`) unless a method like `filter` already made a copy for you.
 3. Same input always gives the same output, and it changes nothing outside itself.
+4. Item, not the array. It give the first item that matches.
 </details>
 
 Then take 3 spaced cards from [review-and-recall.md](./review-and-recall.md) (topics from 3+ days ago).

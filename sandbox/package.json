@@ -1,0 +1,13 @@
+{
+  "name": "ls",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "day-04-basics.js",
+  "typecheck": "tsc --noEmit",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
