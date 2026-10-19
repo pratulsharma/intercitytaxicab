@@ -15,3 +15,6 @@ export const locations: location[] = [
     { slug: "kedarnath", name: "Kedarnath" },
     { slug: "badrinath", name: "Badrinath" }
 ];
+export const findCity = (city: string): location | undefined =>{
+  return locations.find(f=>f.slug === city) // the output is an object
+}
