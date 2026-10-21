@@ -2,6 +2,9 @@
 "use client"
 import { useState } from 'react'
 import { locations } from "@/lib/locations";
+import { FormField } from './FormField';
+import { CitySelect } from './CitySelect';
+import  Button  from './Button';
 export const SearchForm = () => {
     const handleSubmit = () => { };
     const [from, setFrom] = useState("");
@@ -11,47 +14,42 @@ export const SearchForm = () => {
     const inputClass = "p-3 mt-3 bg-amber-100 rounded-2xl"
     const labelClass = "p-3 mt-3 font-bold"
     return (
-        <form
-            className="mx-auto  "
-        > 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-10 shadow-sm">
-            <label className={labelClass} htmlFor="from" >From</label>
-            <select id="from" name="from" defaultValue="">
-                <option value="" disabled>Select City</option >
-                {locations.map((place) =>
-                    <option key={place.slug}> {place.name} </option>
-                )}
-            </select>
+        <form className="mx-auto mt-10 max-w-4xl rounded-2xl bg-white text-left shadow-lg ">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <CitySelect id="from" label="From" />
+                <CitySelect id="to" label="To" />
+                {/* Date */}
+                <FormField id="date" label="date">
+                    <input
+                        id="date"
+                        name="date"
+                        className={inputClass}
+                        type="date"
+                        placeholder="date"
+                    />
+                </FormField>
+                {/* Passengers */}
+                <FormField id="passengers" label="passengers">
+                    <input
+                        className={inputClass}
+                        id="passengers"
+                        name="passengers"
+                        type="number"
+                        min={1}
+                        max={12}
+                        defaultValue={1}
+                        placeholder="passengers"
+                    />
+                </FormField>
+</div>
+                {/* Button */}
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <Button>Search cabs</Button>
+                    <Button variant="secondary" type="reset">
+                        Clear
+                    </Button>
+                </div>
 
-            <label className={labelClass} htmlFor="to">To</label>
-                <select id="to" name="to" defaultValue="">
-                <option value="" disabled>Select City</option >
-                {locations.map((place) =>
-                    <option key={place.slug}> {place.name} </option>
-                )}
-            </select>
-        
-            <label className={labelClass} htmlFor="date">Date</label>
-            <input
-                id="date"
-                name="date"
-                className={inputClass}
-                type="date"
-                placeholder="date"
-            />
-            <label className={labelClass} htmlFor="passengers">Passengers</label>
-            <input
-                className={inputClass}
-                id="passengers"
-                name="passengers"
-                type="number"
-                min={1}
-                max={12}
-                defaultValue={1}
-                placeholder="passengers"
-            />
-            </div>
-            <button type="button" className="rounded-2xl mt-8 bg-blue-600 text-amber-50 p-4 font-bold">Search Cabs</button>
         </form>
     );
 };

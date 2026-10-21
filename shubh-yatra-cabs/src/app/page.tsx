@@ -12,8 +12,8 @@ export default function HomePage() {
         <section id="routes" className="mx-auto max-w-5xl px-6 py-16">
           <h2 className="mb-6 text-2xl font-bold">Popular routes</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {popularRoutes.map((route) => (
-              <RouteCard key={route.slug} route={route} />
+            {popularRoutes.map((route,index ) => (
+              <RouteCard key={route.slug} route={route} featured={index === 0}/> // when index === 0 -> true
             ))}
           </div>
         </section>
