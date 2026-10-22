@@ -10,5 +10,5 @@ export const formatPrice = (price: number): string =>{
 }
 
 export const formatPassengers = (passengers: number):string =>{
-    return `$passengers Passengers`
+    return `${passengers} Passengers`
 }

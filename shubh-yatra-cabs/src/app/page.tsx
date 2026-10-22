@@ -2,7 +2,7 @@ import {Header} from "@/components/Header";
 import {Hero} from "@/components/Hero";
 import RouteCard from "@/components/RouteCard";
 import { popularRoutes } from "@/lib/routes";
-
+import { updateButton as UpdateButton } from "./updateButton";
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -15,6 +15,7 @@ export default function HomePage() {
             {popularRoutes.map((route,index ) => (
               <RouteCard key={route.slug} route={route} featured={index === 0}/> // when index === 0 -> true
             ))}
+            <UpdateButton/>
           </div>
         </section>
       </main>
