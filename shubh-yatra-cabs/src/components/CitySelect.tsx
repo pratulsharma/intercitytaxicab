@@ -6,10 +6,12 @@ import { FormField, formfieldClassname } from "./FormField";
 import { locations } from "@/lib/locations";
 type City = {
     id: string;
-    label: string
+    label: string;
+    error?:string;
 }
 
 export const CitySelect = ({ id, label }: City) => {
+  const errorFor = (id:string) => `${id}-error`
     return (
         <FormField id={id} label={label}>
             <select id={id} name={id} defaultValue="" className={formfieldClassname}>

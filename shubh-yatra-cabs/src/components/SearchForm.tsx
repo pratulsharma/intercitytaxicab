@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { locations } from "@/lib/locations";
 import { FormField } from './FormField';
 import { CitySelect } from './CitySelect';
-import  Button  from './Button';
+import Button from './Button';
+import { PassengerStepper } from './PassengersStepper';
 export const SearchForm = () => {
     const handleSubmit = () => { };
     const [from, setFrom] = useState("");
@@ -29,7 +30,7 @@ export const SearchForm = () => {
                     />
                 </FormField>
                 {/* Passengers */}
-                <FormField id="passengers" label="passengers">
+                {/* <FormField id="passengers" label="passengers">
                     <input
                         className={inputClass}
                         id="passengers"
@@ -40,15 +41,16 @@ export const SearchForm = () => {
                         defaultValue={1}
                         placeholder="passengers"
                     />
-                </FormField>
-</div>
-                {/* Button */}
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <Button>Search cabs</Button>
-                    <Button variant="secondary" type="reset">
-                        Clear
-                    </Button>
-                </div>
+                </FormField> */}
+                <PassengerStepper />
+            </div>
+            {/* Button */}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Button>Search cabs</Button>
+                <Button variant="secondary" type="reset">
+                    Clear
+                </Button>
+            </div>
 
         </form>
     );

@@ -137,10 +137,10 @@ import { searchToQuery } from "@/lib/searchQuery";
 const router = useRouter();
 ```
 
-In the existing submit handler, keep `preventDefault`, `validateSearch`, `setAttempted` and `setErrors`. Replace the `setSubmitted(...)` call with:
+In the existing submit handler, keep `preventDefault`, `today`, `validationErrors`, `setErrors` and `hasErrors`. Replace the final `if (hasErrors) ... else ...` block with:
 
 ```tsx
-if (Object.keys(found).length === 0) {
+if (!hasErrors) {
   router.push(`/results?${searchToQuery(search).toString()}`);
 }
 ```
