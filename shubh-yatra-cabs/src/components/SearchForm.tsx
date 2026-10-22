@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { locations } from "@/lib/locations";
 import { FormField } from './FormField';
 import { CitySelect } from './CitySelect';
-import  Button  from './Button';
+import Button from './Button';
 import { PassengerStepper } from './PassengersStepper';
 export const SearchForm = () => {
     const handleSubmit = () => { };
@@ -42,15 +42,15 @@ export const SearchForm = () => {
                         placeholder="passengers"
                     />
                 </FormField> */}
-                <PassengerStepper/>
-</div>
-                {/* Button */}
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <Button>Search cabs</Button>
-                    <Button variant="secondary" type="reset">
-                        Clear
-                    </Button>
-                </div>
+                <PassengerStepper />
+            </div>
+            {/* Button */}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Button>Search cabs</Button>
+                <Button variant="secondary" type="reset">
+                    Clear
+                </Button>
+            </div>
 
         </form>
     );

@@ -67,7 +67,7 @@ flowchart TD
   B --> C[validateSearch input, today]
   C -->|no errors| D[show the summary<br/>Day 10: go to the results page]
   C -->|errors| E[show a message under each wrong field]
-  E --> F[after the first try, re-check on every change]
+  E --> F[edit a field: clear old messages<br/>click Search to check again]
 ```
 
 ## Step 1: Recall and branch (10 min)
@@ -401,13 +401,13 @@ git switch -c day-09
 
 ## Step 8: The form owns everything (30 min)
 - **What:** `SearchForm` holds the four values in **one** state object and passes them down.
+- **Why:** the form needs all four values to check the search and reset every field together.
+- **Beginner version:** check only when Search is clicked. Editing a field clears all old errors and the old summary; it does not re-check immediately. We use explicit field names instead of spread syntax first.
 - **How:** replace `src/components/SearchForm.tsx`:
   ```tsx
   // WHAT: The working search form: From, To, Date, Passengers, with validation.
   // WHY:  This is the front door of the whole product. Customers start here.
-  // HOW:  ONE state object (`search`) holds all four fields, so there is a single source of
-  //       truth. Every input shows a value from it and reports changes back (controlled inputs).
-  //       On submit we validate; if all is well we show a summary (Day 10 will navigate instead).
+  // HOW:  Store the values, check them on Search, and show errors or a summary.
   "use client";
 
   import { useState, type SubmitEvent } from "react";
@@ -424,28 +424,31 @@ git switch -c day-09
   export default function SearchForm() {
     const [search, setSearch] = useState<SearchInput>(emptySearch);
     const [errors, setErrors] = useState<SearchErrors>({});
-    const [attempted, setAttempted] = useState(false); // show errors only after the first Search click
     const [submitted, setSubmitted] = useState<SearchInput | null>(null);
 
-    // Every input calls this with the NEW whole search. We never edit `search` directly.
-    function change(next: SearchInput) {
-      setSearch(next);
-      setSubmitted(null); // an old summary would no longer match what is on screen
-      if (attempted) setErrors(validateSearch(next, todayAsIsoDate()));
+    function change(nextSearch: SearchInput) {
+      setSearch(nextSearch);
+      setErrors({});
+      setSubmitted(null);
     }
 
     function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
       event.preventDefault(); // stop the browser's own page reload
-      const found = validateSearch(search, todayAsIsoDate());
-      setAttempted(true);
-      setErrors(found);
-      setSubmitted(Object.keys(found).length === 0 ? search : null);
+      const today = todayAsIsoDate();
+      const validationErrors = validateSearch(search, today);
+      setErrors(validationErrors);
+
+      const hasErrors = Object.keys(validationErrors).length > 0;
+      if (hasErrors) {
+        setSubmitted(null);
+      } else {
+        setSubmitted(search);
+      }
     }
 
     function handleClear() {
       setSearch(emptySearch);
       setErrors({});
-      setAttempted(false);
       setSubmitted(null);
     }
 
@@ -460,14 +463,28 @@ git switch -c day-09
             id="from"
             label="From"
             value={search.from}
-            onChange={(from) => change({ ...search, from })}
+            onChange={(newCity) => {
+              change({
+                from: newCity,
+                to: search.to,
+                date: search.date,
+                passengers: search.passengers,
+              });
+            }}
             error={errors.from}
           />
           <CitySelect
             id="to"
             label="To"
             value={search.to}
-            onChange={(to) => change({ ...search, to })}
+            onChange={(newCity) => {
+              change({
+                from: search.from,
+                to: newCity,
+                date: search.date,
+                passengers: search.passengers,
+              });
+            }}
             error={errors.to}
           />
 
@@ -477,7 +494,14 @@ git switch -c day-09
               name="date"
               type="date"
               value={search.date}
-              onChange={(event) => change({ ...search, date: event.target.value })}
+              onChange={(event) => {
+                change({
+                  from: search.from,
+                  to: search.to,
+                  date: event.target.value,
+                  passengers: search.passengers,
+                });
+              }}
               aria-invalid={errors.date ? true : undefined}
               aria-describedby={errors.date ? errorIdFor("date") : undefined}
               className={fieldClass}
@@ -486,7 +510,14 @@ git switch -c day-09
 
           <PassengerStepper
             value={search.passengers}
-            onChange={(passengers) => change({ ...search, passengers })}
+            onChange={(newCount) => {
+              change({
+                from: search.from,
+                to: search.to,
+                date: search.date,
+                passengers: newCount,
+              });
+            }}
             error={errors.passengers}
           />
         </div>
@@ -513,15 +544,74 @@ git switch -c day-09
   | Code | Meaning |
   |---|---|
   | `useState<SearchInput>(emptySearch)` | one object with all four fields. `<SearchInput>` is the Day 6 type, so a typo in a field name is a compile error |
-  | `change({ ...search, from })` | make a **copy** of the search with only `from` replaced. `...search` spreads the old values; `from` (short for `from: from`) overrides one. We never edit `search` in place |
-  | `attempted` | errors only appear after the first Search click. After that, every change re-checks, so messages disappear as the user fixes things |
+  | `search` | what the user is currently entering: From, To, date and passengers |
+  | `errors` | field messages from the most recent Search click; `{}` means no messages |
+  | `submitted` | the search that passed validation, or `null` when no summary should appear |
+  | `change(nextSearch)` | replace the search with a new object and clear old feedback |
+  | `Object.keys(validationErrors).length > 0` | count the fields with errors; more than zero means the search is invalid |
   | `event.preventDefault()` | stops the browser from reloading the page when the form is submitted |
   | `noValidate` on `<form>` | turns off the browser's own pop-up messages so ours are the only ones |
   | `type SubmitEvent` | the type of the submit event. Imported from React; `FormEvent` is deprecated |
   | `setSubmitted(null)` inside `change` | an old summary would no longer match what's on screen, so we hide it when anything changes |
   | `handleClear` | puts the state back to `emptySearch`. The inputs follow because they show the state |
 
-  **Why not mutate?** Writing `search.from = "haridwar"` changes the object but never tells React, so the screen doesn't redraw. The React linter in this project even flags it: `This value cannot be modified`. Always make a new object with the spread `...`.
+  ### Why pass `onChange` to a child?
+
+  The parent stores the value, but the child displays the control the user edits. The child cannot directly change the parent's state, so the parent supplies a function for the child to call.
+
+  ```text
+  SearchForm sends value -> CitySelect displays it
+                                   |
+                           user picks a city
+                                   |
+  CitySelect calls onChange(newCity)
+                                   |
+  SearchForm makes a new search object -> React redraws the dropdown
+  ```
+
+  Inside `CitySelect`, the native dropdown reports its selected value like this:
+
+  ```tsx
+  <select
+    value={value}
+    onChange={(event) => onChange(event.target.value)}
+  >
+    {/* Keep your existing city options here. */}
+  </select>
+  ```
+
+  The left `onChange` belongs to the HTML dropdown; the function called on the right is the prop supplied by `SearchForm`. Not every child needs an `onChange` prop: it is needed here to report an edit.
+
+  ### Why keep `submitted` as well as `search`?
+
+  `search` changes as you type. `submitted` is set only after a valid Search click, so typing alone does not show a success summary. The JSX `{submitted && (...)}` means "show this summary only when submitted contains a search." Setting it to `null` hides the summary.
+
+  This is temporary learning feedback, not a saved booking. In Day 10, navigation to the results page replaces it, so we remove this state.
+
+  ### Object updates without spread first
+
+  When From changes, we write a new object:
+
+  ```tsx
+  change({
+    from: newCity,
+    to: search.to,
+    date: search.date,
+    passengers: search.passengers,
+  });
+  ```
+
+  Read it as: "Use the new From city and keep the other three values." React's `setSearch` replaces the whole object; it does not automatically merge fields.
+
+  **Optional shorthand for later:** this does the same thing:
+
+  ```tsx
+  change({ ...search, from: newCity });
+  ```
+
+  `...search` copies the existing fields into a new object. The later `from: newCity` replaces the copied From value. Order matters: put the replacement after the spread.
+
+  **Why not mutate?** Writing `search.from = "haridwar"` edits the existing state object without calling its setter. It does not request a redraw and can corrupt earlier state snapshots. Always pass a new object to the setter, either by listing the fields explicitly or by using spread.
 
   **CSS: new classes**
 
@@ -536,10 +626,10 @@ npm run dev
 ```
 Check each point:
 1. Click **Search cabs** with nothing filled in. Three red messages appear (From, To, date).
-2. Choose a From city. Its message disappears immediately (re-checking after the first try).
-3. Choose the same city for To. You get "Pick-up and drop must be different cities."
-4. Choose a different To city, pick a date in the past. You get "Travel date can't be in the past."
-5. Pick a date in the future. All errors vanish. Click **Search cabs**. A green line appears: *Searching: Haridwar → Badrinath on 2026-…, 2 passengers*.
+2. Choose a From city. All old messages disappear; this only clears feedback, it does not mean the search is valid.
+3. Choose the same city for To and a future date. Click **Search cabs**. You get "Pick-up and drop must be different cities."
+4. Choose a different To city and pick a date in the past. Click **Search cabs**. You get "Travel date can't be in the past."
+5. Pick a date in the future, then click **Search cabs**. A green line appears: *Searching: Haridwar → Badrinath on your chosen date, 2 passengers*.
 6. Change any field. The green line disappears.
 7. Click **Clear**. **Every** field is back to the start, including the passengers (this fails on Day 8, now it works).
 8. Click into the date field and press Enter: the form submits (free, because it's a real `<form>`).
@@ -565,7 +655,7 @@ PR into `develop`, wait for green CI, merge, test the preview on your phone.
 |---|---|---|
 | `You provided a value prop to a form field without an onChange handler` | the input is controlled (has `value`) but nothing updates the state | add `onChange`, or use `defaultValue` for an uncontrolled input |
 | `A component is changing an uncontrolled input to be controlled` | the `value` started as `undefined` and later became text | start with a real value such as `""`, not `undefined` |
-| `This value cannot be modified` (lint) | you edited a state object directly | create a copy: `change({ ...search, from })` |
+| `This value cannot be modified` (lint) | you edited a state object directly | pass a new object with all four fields to `change`, as shown in Step 8 |
 | `Next.js encountered the unstable value new Date() in a Client Component` | you read the clock while drawing | read it inside an event handler (like `handleSubmit`) |
 | `Property 'passengers' is missing in type ... but required in type 'SearchInput'` | you built a `SearchInput` without all four fields | include every field, or spread an existing object |
 | The page reloads when you click Search | `preventDefault()` is missing | call `event.preventDefault()` first in `handleSubmit` |
@@ -684,4 +774,3 @@ More on this track: [system-design-and-dsa.md](./system-design-and-dsa.md).
 6. **Why validate on both the client and the server?** Client checks give fast feedback. Server checks are the real protection, because anything sent from a browser can be forged.
 7. **(System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?** Each place has a different purpose (UX vs security). Keep one shared rule definition (later a Zod schema) that both import.
 8. **(Behavioural) Tell me about a feature you made more robust by thinking about bad input.** Use the validation list: empty fields, same city, past date, 0 or 13 passengers. Say how you found the cases and tested them in the sandbox.
-
