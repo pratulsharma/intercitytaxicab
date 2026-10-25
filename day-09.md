@@ -426,7 +426,7 @@ git switch -c day-09
     const [errors, setErrors] = useState<SearchErrors>({});
     const [submitted, setSubmitted] = useState<SearchInput | null>(null);
 
-    function change(nextSearch: SearchInput) {
+    function updateSearch(nextSearch: SearchInput) {
       setSearch(nextSearch);
       setErrors({});
       setSubmitted(null);
@@ -464,7 +464,7 @@ git switch -c day-09
             label="From"
             value={search.from}
             onChange={(newCity) => {
-              change({
+              updateSearch({
                 from: newCity,
                 to: search.to,
                 date: search.date,
@@ -478,7 +478,7 @@ git switch -c day-09
             label="To"
             value={search.to}
             onChange={(newCity) => {
-              change({
+              updateSearch({
                 from: search.from,
                 to: newCity,
                 date: search.date,
@@ -495,7 +495,7 @@ git switch -c day-09
               type="date"
               value={search.date}
               onChange={(event) => {
-                change({
+                updateSearch({
                   from: search.from,
                   to: search.to,
                   date: event.target.value,
@@ -511,7 +511,7 @@ git switch -c day-09
           <PassengerStepper
             value={search.passengers}
             onChange={(newCount) => {
-              change({
+              updateSearch({
                 from: search.from,
                 to: search.to,
                 date: search.date,
@@ -547,12 +547,12 @@ git switch -c day-09
   | `search` | what the user is currently entering: From, To, date and passengers |
   | `errors` | field messages from the most recent Search click; `{}` means no messages |
   | `submitted` | the search that passed validation, or `null` when no summary should appear |
-  | `change(nextSearch)` | replace the search with a new object and clear old feedback |
+  | `updateSearch(nextSearch)` | the parent's function: replace the search with a new object and clear old feedback |
   | `Object.keys(validationErrors).length > 0` | count the fields with errors; more than zero means the search is invalid |
   | `event.preventDefault()` | stops the browser from reloading the page when the form is submitted |
   | `noValidate` on `<form>` | turns off the browser's own pop-up messages so ours are the only ones |
   | `type SubmitEvent` | the type of the submit event. Imported from React; `FormEvent` is deprecated |
-  | `setSubmitted(null)` inside `change` | an old summary would no longer match what's on screen, so we hide it when anything changes |
+  | `setSubmitted(null)` inside `updateSearch` | an old summary would no longer match what's on screen, so we hide it when anything changes |
   | `handleClear` | puts the state back to `emptySearch`. The inputs follow because they show the state |
 
   ### Why pass `onChange` to a child?
@@ -582,6 +582,22 @@ git switch -c day-09
 
   The left `onChange` belongs to the HTML dropdown; the function called on the right is the prop supplied by `SearchForm`. Not every child needs an `onChange` prop: it is needed here to report an edit.
 
+  **Keep the names separate:** `onChange` is the child's callback prop; `updateSearch` is the parent's function that stores the whole search. They do not need to have the same name.
+
+  For example, if `search.passengers` is 2 and the user clicks +:
+
+  ```text
+  PassengerStepper calls onChange(3)
+                  |
+  Parent's supplied callback receives newCount = 3
+                  |
+  Callback calls updateSearch with the old cities/date and passengers: 3
+                  |
+  setSearch updates state; the child receives value = 3
+  ```
+
+  `newCount` is a parameter holding the number the child passed. The child reports one number; the parent's callback builds the complete search object.
+
   ### Why keep `submitted` as well as `search`?
 
   `search` changes as you type. `submitted` is set only after a valid Search click, so typing alone does not show a success summary. The JSX `{submitted && (...)}` means "show this summary only when submitted contains a search." Setting it to `null` hides the summary.
@@ -593,7 +609,7 @@ git switch -c day-09
   When From changes, we write a new object:
 
   ```tsx
-  change({
+  updateSearch({
     from: newCity,
     to: search.to,
     date: search.date,
@@ -606,7 +622,7 @@ git switch -c day-09
   **Optional shorthand for later:** this does the same thing:
 
   ```tsx
-  change({ ...search, from: newCity });
+  updateSearch({ ...search, from: newCity });
   ```
 
   `...search` copies the existing fields into a new object. The later `from: newCity` replaces the copied From value. Order matters: put the replacement after the spread.
@@ -655,7 +671,7 @@ PR into `develop`, wait for green CI, merge, test the preview on your phone.
 |---|---|---|
 | `You provided a value prop to a form field without an onChange handler` | the input is controlled (has `value`) but nothing updates the state | add `onChange`, or use `defaultValue` for an uncontrolled input |
 | `A component is changing an uncontrolled input to be controlled` | the `value` started as `undefined` and later became text | start with a real value such as `""`, not `undefined` |
-| `This value cannot be modified` (lint) | you edited a state object directly | pass a new object with all four fields to `change`, as shown in Step 8 |
+| `This value cannot be modified` (lint) | you edited a state object directly | pass a new object with all four fields to `updateSearch`, as shown in Step 8 |
 | `Next.js encountered the unstable value new Date() in a Client Component` | you read the clock while drawing | read it inside an event handler (like `handleSubmit`) |
 | `Property 'passengers' is missing in type ... but required in type 'SearchInput'` | you built a `SearchInput` without all four fields | include every field, or spread an existing object |
 | The page reloads when you click Search | `preventDefault()` is missing | call `event.preventDefault()` first in `handleSubmit` |
@@ -669,7 +685,7 @@ PR into `develop`, wait for green CI, merge, test the preview on your phone.
 - [ ] PR merged and CI green.
 
 ## Write today's doc (10 min)
-`docs/day-09.md`: *What I built*, *Controlled vs uncontrolled in my own words*, *How `change` and `validateSearch` work together*, *What confused me*, *What I'll ask the owner* (for example: are there pick-ups outside the six placeholder cities?).
+`docs/day-09.md`: *What I built*, *Controlled vs uncontrolled in my own words*, *How `updateSearch` and `validateSearch` work together*, *What confused me*, *What I'll ask the owner* (for example: are there pick-ups outside the six placeholder cities?).
 
 ## System design corner (10 min)
 **Concept: validate at the boundary, in two places.**

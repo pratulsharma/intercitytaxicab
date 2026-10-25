@@ -1,20 +1,31 @@
 // from, to, date, pasengers
 "use client"
-import { useState } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { locations } from "@/lib/locations";
 import { FormField } from './FormField';
 import { CitySelect } from './CitySelect';
 import Button from './Button';
 import { PassengerStepper } from './PassengersStepper';
+import { TestForm } from './TestForm';
 export const SearchForm = () => {
-    const handleSubmit = () => { };
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
     const [date, setDate] = useState("");
     const [passengers, setPassengers] = useState(1);
-    const inputClass = "p-3 mt-3 bg-amber-100 rounded-2xl"
+    const inputClass = "p-3 mt-3 bg-amber-100 rounded-2xl";
     const labelClass = "p-3 mt-3 font-bold"
+    const [fname,setName] = useState("")
+    const updateName = (input: string) =>{
+        setName(input)
+    }
+
+    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) =>{
+        e.preventDefault()
+        console.log("FirstName", fname)
+    }
+
     return (
+        <>
         <form className="mx-auto mt-10 max-w-4xl rounded-2xl bg-white text-left shadow-lg ">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <CitySelect id="from" label="From" />
@@ -51,7 +62,8 @@ export const SearchForm = () => {
                     Clear
                 </Button>
             </div>
-
         </form>
+<TestForm handleSubmit={handleSubmit} fname={fname} onChange={updateName}/>
+</>
     );
 };

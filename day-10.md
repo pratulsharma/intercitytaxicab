@@ -145,7 +145,7 @@ if (!hasErrors) {
 }
 ```
 
-Remove the now-unused `submitted` state, every `setSubmitted` call, the green summary JSX, and the `describeSearch` import if nothing else uses it. Keep all the input state, `change`, Clear and validation logic.
+Remove the now-unused `submitted` state, every `setSubmitted` call, the green summary JSX, and the `describeSearch` import if nothing else uses it. Keep all the input state, `updateSearch`, Clear and validation logic.
 
 ## Step 5: Create the results route (65 min total for Steps 3-5)
 
