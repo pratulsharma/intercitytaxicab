@@ -790,3 +790,106 @@ More on this track: [system-design-and-dsa.md](./system-design-and-dsa.md).
 6. **Why validate on both the client and the server?** Client checks give fast feedback. Server checks are the real protection, because anything sent from a browser can be forged.
 7. **(System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?** Each place has a different purpose (UX vs security). Keep one shared rule definition (later a Zod schema) that both import.
 8. **(Behavioural) Tell me about a feature you made more robust by thinking about bad input.** Use the validation list: empty fields, same city, past date, 0 or 13 passengers. Say how you found the cases and tested them in the sandbox.
+
+## Appendix: How `SearchForm` works, built up from a tiny example
+Read this if Step 8 feels like too much at once. Each part adds one idea to the one before.
+
+### A1. A form that remembers one value
+```tsx
+"use client";
+import { useState } from "react";
+
+export default function Tiny() {
+  const [from, setFrom] = useState("");
+  return <input value={from} onChange={(e) => setFrom(e.target.value)} />;
+}
+```
+- `useState` is the component's memory. `from` is the current value and `setFrom` changes it.
+- The input is **controlled**: it shows what is in state, and typing calls `setFrom`, which redraws with the new value. State is the single source of truth.
+- `"use client"` is needed because `useState` and event handlers only work in the browser.
+
+### A2. Submit and validate
+```tsx
+const [from, setFrom] = useState("");
+const [error, setError] = useState("");
+
+function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setError(from === "" ? "Please provide from" : "");
+}
+
+<form onSubmit={handleSubmit} noValidate>
+  <input value={from} onChange={(e) => setFrom(e.target.value)} />
+  {error && <p>{error}</p>}
+  <button type="submit">Search</button>
+</form>
+```
+- `preventDefault()` stops the browser's default page reload so React decides what happens.
+- `noValidate` turns off the browser's own pop-up messages, so ours are the only ones.
+- The error is state too. Setting it redraws the `<p>`.
+
+### A3. Several fields become one object
+Four separate `useState` calls get messy, so `SearchForm` keeps one object:
+```tsx
+type SearchInput = { from: string; to: string; date: string; passengers: number };
+const emptySearch: SearchInput = { from: "", to: "", date: "", passengers: 2 };
+const [search, setSearch] = useState<SearchInput>(emptySearch);
+```
+To change one field, build a **new** object. Never edit the old one:
+```tsx
+setSearch({ from: newCity, to: search.to, date: search.date, passengers: search.passengers });
+```
+The shorter form is `{ ...search, from: newCity }`. Step 8 writes every field out first so nothing is hidden.
+
+### A4. Errors keyed by field
+```tsx
+const [errors, setErrors] = useState<SearchErrors>({});
+// SearchErrors = { from?: string; to?: string; date?: string; passengers?: string }
+```
+`validateSearch(search, today)` is a plain function. It returns something like `{ to: "Dropoff locations cannot be same as pick up location" }`, and `{}` means no errors. Each field asks for its own message with `errors.date`, `errors.to` and so on.
+
+### A5. Three pieces of state and the flow
+```tsx
+const [search, setSearch]       = useState(emptySearch);  // what the user typed
+const [errors, setErrors]       = useState({});           // what is wrong
+const [submitted, setSubmitted] = useState(null);         // the accepted search, or null
+```
+On submit (`handleSubmit`):
+1. Compute `today`, then `validationErrors = validateSearch(search, today)`.
+2. `setErrors(validationErrors)` shows the messages.
+3. If `Object.keys(validationErrors).length > 0` there are errors, so `setSubmitted(null)`. Otherwise `setSubmitted(search)` and the green "Searching: ..." box appears.
+
+`change(nextSearch)` runs on every edit. It saves the new value and also clears `errors` and `submitted`, so old messages disappear when the user edits. `handleClear` resets all three.
+
+### A6. Props down, events up
+```
+SearchForm (owns the state)
+ ├─ CitySelect        value={search.from}  onChange={...}  error={errors.from}
+ ├─ FormField         error={errors.date}  -> <input> (children)
+ └─ PassengerStepper  value  onChange  error
+```
+- **Down:** the parent passes `value` and `error` as props. Children only show what they are given.
+- **Up:** a child calls the `onChange` it was given, for example `onChange(newCity)`. That runs back in the parent and calls `change(...)`.
+- The children keep no memory of their own. `SearchForm` controls them.
+
+### A7. Passing the error to a field with an input inside
+`FormField` takes `error` as a normal prop and draws the message under its `children`. The input itself is written in `SearchForm`, so it can read `errors.date` directly:
+```tsx
+<FormField id="date" label="Travel date" error={errors.date}>
+  <input
+    id="date"
+    aria-invalid={errors.date ? true : undefined}
+    aria-describedby={errors.date ? errorIdFor("date") : undefined}
+  />
+</FormField>
+```
+- `aria-invalid` marks the input as invalid. `aria-describedby` points at the id of the message `<p>` (`date-error`), so a screen reader reads the message with the field. `undefined` removes the attribute when there is no error.
+- `errorIdFor` is exported from `FormField.tsx` and used in both places, so the `<p>` id and `aria-describedby` can never drift apart.
+
+### The whole run in four lines
+1. First draw: `emptySearch`, no errors, no summary.
+2. The user edits, so `change` replaces `search` and clears old messages.
+3. The user clicks **Search cabs**, so `handleSubmit` validates and either shows the field errors or the summary.
+4. **Clear** resets everything.
+
+The three header comments in `SearchForm.tsx` say the same thing: **WHAT** is the form, **WHY** is that it is the front door, and **HOW** is to store, check on submit, and show errors or a summary.
