@@ -14,5 +14,8 @@ const nextConfig: NextConfig = {
     },
   },
 };
-
+//Comment
+// TODO: This is another todo
+//COMMENT: this is the comment
+// CONCEPT: This is the concept in React
 export default nextConfig;
