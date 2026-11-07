@@ -9,7 +9,6 @@ export type Route = {
     blurb: string; 
     fromPriceInr: number;
 };
-
 export const popularRoutes: Route[] = [
     { slug: "haridwar-to-rishikesh", from: "Haridwar", to: "Rishikesh", blurb: "Ganga Aarti", fromPriceInr: 1200 },
     { slug: "haridwar-to-kedarnath", from: "Haridwar", to: "Kedarnath", blurb: "Spiritual Retreat", fromPriceInr: 6200 },

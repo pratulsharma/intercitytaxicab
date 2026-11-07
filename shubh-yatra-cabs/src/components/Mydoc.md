@@ -17,4 +17,8 @@
             - calls -> CitySelect -> calls FormField 
             - calls -> PassengerStepprt 
     - Now lets look at FormField 
-        - it defines the label 
+        - it defines the label tag --> lable tag used id and label (thing that need to be displayed)
+        - also uses children as a prop that it can display; it uses children because the form can have different types of inputs --> just text input, date input, dropdown inputs etc.
+        - for children we use ReactNode as a type
+        - So how does the FormField.tsx look like ?
+        
