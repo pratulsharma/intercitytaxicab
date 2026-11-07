@@ -802,7 +802,18 @@ SearchForm            <- parent: owns the state (what the user picked, the error
 ```
 Two rules explain the whole lesson:
 1. **Data goes down** the tree as props (parent to child to grandchild).
-2. **News goes up** by calling a function the parent handed down (grandchild or child tells the parent "the user did something").
+2. **Events go up** by calling a function the parent handed down (the child tells the parent "the user did something", for example "a city was picked"). This function is called a **callback**, and it is usually named `onSomething`, like `onChange`.
+
+```mermaid
+flowchart TD
+  P["<b>SearchForm</b> (parent)<br/>OWNS the memory:<br/>from = 'dehradun'<br/>errors = { from: 'Please provide from' }"]
+  C["<b>CitySelect</b> (child)<br/>no memory of its own<br/>draws the dropdown"]
+  G["<b>FormField</b> (grandchild)<br/>draws the label<br/>and the red error text"]
+  P -->|"DOWN (props):<br/>label, value, error, onChange"| C
+  C -->|"DOWN (props):<br/>label, error<br/>+ the dropdown as children"| G
+  C -.->|"UP (callback):<br/>onChange('haridwar')<br/>'the user picked a city'"| P
+```
+Solid arrows carry data down. The dotted arrow is the child calling the function it was given, which is the only way it can ask the parent to change anything.
 
 ### B1. The parent passes a value down
 The parent holds the chosen city. It gives it to the child. The child gives the label to the grandchild.
@@ -843,8 +854,8 @@ export default function FormField({ label, children }: { label: string; children
 - `label` and `value` start in the parent and travel **down**. Nobody below can change them.
 - `children` is whatever is written between `<FormField>` and `</FormField>`. Here it is the `<select>`. `FormField` puts it under the label without knowing what it is.
 - The `<select>` shows `value`, so it is **controlled**: the screen always shows what is in the parent's state.
-
-### B2. The child reports back (news goes up)
+- This step passes only **data** on purpose, so you can see one direction first. It is incomplete: a controlled `<select>` with no way to report changes is stuck on its value, and React warns about it in the console. B2 adds the missing piece, which is a function passed as a prop in exactly the same way as `value`.
+### B2. The child reports back (events go up)
 Right now picking a city does nothing, because only the parent can change `from`. So the parent also hands down a **function**:
 ```tsx
 // SearchForm.tsx (parent)
@@ -861,6 +872,20 @@ When the user picks a city:
 4. State changed, so React redraws the parent, which passes the new `value` down again.
 
 The child never stores the city. It asks the parent to change it. That loop (down with `value`, up with `onChange`) is what "lifting state up" means.
+
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant C as CitySelect (child)
+  participant P as SearchForm (parent)
+  U->>C: picks Haridwar in the dropdown
+  C->>P: calls onChange("haridwar")
+  Note over C,P: onChange is a prop. The parent gave this function to the child.
+  Note over P: setFrom("haridwar"). This is the ONLY place the city changes.
+  P->>P: React redraws SearchForm
+  P->>C: passes value="haridwar" down again
+  Note over C: The dropdown now shows Haridwar
+```
 
 ### B3. The error travels down two levels
 The parent decides what is wrong. It passes the message down the same way as `value`:
@@ -914,6 +939,22 @@ function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 - `validateSearch` returns an object like `{ from: "Please provide from" }`, or `{}` if everything is fine. Every field reads its own key: `errors.from`, `errors.to`, `errors.date`, `errors.passengers`.
 - `change(...)` (called on every edit) clears `errors` and `submitted`, so old messages disappear when the user edits.
 
+```mermaid
+sequenceDiagram
+  actor U as User
+  participant P as SearchForm (parent)
+  participant V as validateSearch (plain function)
+  participant C as CitySelect (child)
+  participant G as FormField (grandchild)
+  U->>P: clicks Search cabs, so handleSubmit runs
+  P->>V: validateSearch(search, today)
+  V-->>P: { from: "Please provide from" }
+  Note over P: setErrors(found). The error is now in the parent's memory.
+  P->>C: redraw: error = errors.from
+  C->>G: passes error on to FormField
+  Note over G: Draws the red message under the field
+  Note over C: The select gets aria-invalid and aria-describedby pointing at that message
+```
 ### B6. Scale up: the real `SearchForm`
 Now repeat the same pattern for four fields. Instead of four `useState` calls, the parent keeps **one object**:
 ```tsx
