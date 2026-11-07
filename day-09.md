@@ -791,105 +791,156 @@ More on this track: [system-design-and-dsa.md](./system-design-and-dsa.md).
 7. **(System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?** Each place has a different purpose (UX vs security). Keep one shared rule definition (later a Zod schema) that both import.
 8. **(Behavioural) Tell me about a feature you made more robust by thinking about bad input.** Use the validation list: empty fields, same city, past date, 0 or 13 passengers. Say how you found the cases and tested them in the sandbox.
 
-## Appendix: How `SearchForm` works, built up from a tiny example
-Read this if Step 8 feels like too much at once. Each part adds one idea to the one before.
+## Appendix: Parent, child, grandchild: how data and errors flow
+Read this if Step 8 feels like too much at once. We use the real component family from this lesson, but only the **From** field, and add one idea at a time.
 
-### A1. A form that remembers one value
+### The family tree
+```
+SearchForm            <- parent: owns the state (what the user picked, the errors)
+  └─ CitySelect       <- child: shows the dropdown
+       └─ FormField   <- grandchild: shows the label and the error message
+```
+Two rules explain the whole lesson:
+1. **Data goes down** the tree as props (parent to child to grandchild).
+2. **News goes up** by calling a function the parent handed down (grandchild or child tells the parent "the user did something").
+
+### B1. The parent passes a value down
+The parent holds the chosen city. It gives it to the child. The child gives the label to the grandchild.
 ```tsx
+// SearchForm.tsx (parent)
 "use client";
 import { useState } from "react";
+import CitySelect from "@/components/CitySelect";
 
-export default function Tiny() {
-  const [from, setFrom] = useState("");
-  return <input value={from} onChange={(e) => setFrom(e.target.value)} />;
+export default function SearchForm() {
+  const [from, setFrom] = useState("");          // the parent's memory
+  return <CitySelect label="From" value={from} />;
 }
 ```
-- `useState` is the component's memory. `from` is the current value and `setFrom` changes it.
-- The input is **controlled**: it shows what is in state, and typing calls `setFrom`, which redraws with the new value. State is the single source of truth.
-- `"use client"` is needed because `useState` and event handlers only work in the browser.
-
-### A2. Submit and validate
 ```tsx
-const [from, setFrom] = useState("");
-const [error, setError] = useState("");
+// CitySelect.tsx (child)
+import FormField from "@/components/FormField";
 
-function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setError(from === "" ? "Please provide from" : "");
+export default function CitySelect({ label, value }: { label: string; value: string }) {
+  return (
+    <FormField label={label}>
+      <select value={value}>...</select>
+    </FormField>
+  );
 }
-
-<form onSubmit={handleSubmit} noValidate>
-  <input value={from} onChange={(e) => setFrom(e.target.value)} />
-  {error && <p>{error}</p>}
-  <button type="submit">Search</button>
-</form>
 ```
-- `preventDefault()` stops the browser's default page reload so React decides what happens.
-- `noValidate` turns off the browser's own pop-up messages, so ours are the only ones.
-- The error is state too. Setting it redraws the `<p>`.
-
-### A3. Several fields become one object
-Four separate `useState` calls get messy, so `SearchForm` keeps one object:
 ```tsx
-type SearchInput = { from: string; to: string; date: string; passengers: number };
-const emptySearch: SearchInput = { from: "", to: "", date: "", passengers: 2 };
+// FormField.tsx (grandchild)
+export default function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label>{label}</label>
+      {children}
+    </div>
+  );
+}
+```
+- `label` and `value` start in the parent and travel **down**. Nobody below can change them.
+- `children` is whatever is written between `<FormField>` and `</FormField>`. Here it is the `<select>`. `FormField` puts it under the label without knowing what it is.
+- The `<select>` shows `value`, so it is **controlled**: the screen always shows what is in the parent's state.
+
+### B2. The child reports back (news goes up)
+Right now picking a city does nothing, because only the parent can change `from`. So the parent also hands down a **function**:
+```tsx
+// SearchForm.tsx (parent)
+<CitySelect label="From" value={from} onChange={(newCity) => setFrom(newCity)} />
+```
+```tsx
+// CitySelect.tsx (child)
+<select value={value} onChange={(event) => onChange(event.target.value)}>
+```
+When the user picks a city:
+1. The browser fires the `<select>`'s `onChange` in the child.
+2. The child calls `onChange(event.target.value)`, the function it was given.
+3. That function runs **in the parent** and calls `setFrom(newCity)`.
+4. State changed, so React redraws the parent, which passes the new `value` down again.
+
+The child never stores the city. It asks the parent to change it. That loop (down with `value`, up with `onChange`) is what "lifting state up" means.
+
+### B3. The error travels down two levels
+The parent decides what is wrong. It passes the message down the same way as `value`:
+```tsx
+// SearchForm.tsx (parent)
+const [errors, setErrors] = useState<SearchErrors>({});   // e.g. { from: "Please provide from" }
+
+<CitySelect label="From" value={from} onChange={...} error={errors.from} />
+```
+```tsx
+// CitySelect.tsx (child): receives error and passes it one level further down
+<FormField label={label} error={error}>
+```
+```tsx
+// FormField.tsx (grandchild): the only one that draws the message
+{error && <p className="text-red-600">{error}</p>}
+```
+`CitySelect` does not use `error` itself. It just hands it on. Passing a prop through a level like this is normal, and with only three levels it is the simplest approach.
+
+### B4. The input and its error message must find each other
+In `CitySelect` we write the `<select>`, and the message `<p>` is drawn by `FormField`. For screen readers to connect them, the select needs `aria-describedby` pointing at the `<p>`'s `id`. Both sides must build the same id, so one helper is shared:
+```tsx
+// FormField.tsx
+export const errorIdFor = (id: string) => `${id}-error`;     // "from" -> "from-error"
+...
+{error && <p id={errorIdFor(id)}>{error}</p>}                // grandchild draws it
+```
+```tsx
+// CitySelect.tsx
+<select
+  id={id}
+  aria-invalid={error ? true : undefined}
+  aria-describedby={error ? errorIdFor(id) : undefined}   // points at the same id
+>
+```
+- `aria-invalid` marks the field as wrong. `aria-describedby` makes the screen reader read the message with the field.
+- `undefined` removes the attribute when there is no error.
+- The same trick works for the Date field, where the `<input>` is written straight in `SearchForm` as the child of `FormField`. There the parent already has `errors.date` and calls `errorIdFor("date")` itself.
+
+### B5. The parent decides when to check (Submit)
+All the rules live in one plain function, `validateSearch`. The parent calls it only when the form is submitted:
+```tsx
+// SearchForm.tsx (parent)
+function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  event.preventDefault();                          // no page reload
+  const found = validateSearch(search, todayAsIsoDate());
+  setErrors(found);                                // the children now receive the messages
+  setSubmitted(Object.keys(found).length > 0 ? null : search);
+}
+```
+- `validateSearch` returns an object like `{ from: "Please provide from" }`, or `{}` if everything is fine. Every field reads its own key: `errors.from`, `errors.to`, `errors.date`, `errors.passengers`.
+- `change(...)` (called on every edit) clears `errors` and `submitted`, so old messages disappear when the user edits.
+
+### B6. Scale up: the real `SearchForm`
+Now repeat the same pattern for four fields. Instead of four `useState` calls, the parent keeps **one object**:
+```tsx
 const [search, setSearch] = useState<SearchInput>(emptySearch);
+// { from: "", to: "", date: "", passengers: 2 }
 ```
-To change one field, build a **new** object. Never edit the old one:
+When one field changes, build a **new** object (never edit the old one) so React notices:
 ```tsx
 setSearch({ from: newCity, to: search.to, date: search.date, passengers: search.passengers });
+// shorter: setSearch({ ...search, from: newCity })
 ```
-The shorter form is `{ ...search, from: newCity }`. Step 8 writes every field out first so nothing is hidden.
-
-### A4. Errors keyed by field
-```tsx
-const [errors, setErrors] = useState<SearchErrors>({});
-// SearchErrors = { from?: string; to?: string; date?: string; passengers?: string }
+The full tree now looks like this:
 ```
-`validateSearch(search, today)` is a plain function. It returns something like `{ to: "Dropoff locations cannot be same as pick up location" }`, and `{}` means no errors. Each field asks for its own message with `errors.date`, `errors.to` and so on.
-
-### A5. Three pieces of state and the flow
-```tsx
-const [search, setSearch]       = useState(emptySearch);  // what the user typed
-const [errors, setErrors]       = useState({});           // what is wrong
-const [submitted, setSubmitted] = useState(null);         // the accepted search, or null
+SearchForm (search, errors, submitted)
+  ├─ CitySelect id="from"   value={search.from}  onChange  error={errors.from}  └─ FormField
+  ├─ CitySelect id="to"     value={search.to}    onChange  error={errors.to}    └─ FormField
+  ├─ FormField id="date" error={errors.date}  └─ <input type="date">  (parent writes the input)
+  ├─ PassengerStepper value={search.passengers}  onChange  error={errors.passengers}
+  └─ Button "Search cabs" / "Clear"
 ```
-On submit (`handleSubmit`):
-1. Compute `today`, then `validationErrors = validateSearch(search, today)`.
-2. `setErrors(validationErrors)` shows the messages.
-3. If `Object.keys(validationErrors).length > 0` there are errors, so `setSubmitted(null)`. Otherwise `setSubmitted(search)` and the green "Searching: ..." box appears.
 
-`change(nextSearch)` runs on every edit. It saves the new value and also clears `errors` and `submitted`, so old messages disappear when the user edits. `handleClear` resets all three.
-
-### A6. Props down, events up
-```
-SearchForm (owns the state)
- ├─ CitySelect        value={search.from}  onChange={...}  error={errors.from}
- ├─ FormField         error={errors.date}  -> <input> (children)
- └─ PassengerStepper  value  onChange  error
-```
-- **Down:** the parent passes `value` and `error` as props. Children only show what they are given.
-- **Up:** a child calls the `onChange` it was given, for example `onChange(newCity)`. That runs back in the parent and calls `change(...)`.
-- The children keep no memory of their own. `SearchForm` controls them.
-
-### A7. Passing the error to a field with an input inside
-`FormField` takes `error` as a normal prop and draws the message under its `children`. The input itself is written in `SearchForm`, so it can read `errors.date` directly:
-```tsx
-<FormField id="date" label="Travel date" error={errors.date}>
-  <input
-    id="date"
-    aria-invalid={errors.date ? true : undefined}
-    aria-describedby={errors.date ? errorIdFor("date") : undefined}
-  />
-</FormField>
-```
-- `aria-invalid` marks the input as invalid. `aria-describedby` points at the id of the message `<p>` (`date-error`), so a screen reader reads the message with the field. `undefined` removes the attribute when there is no error.
-- `errorIdFor` is exported from `FormField.tsx` and used in both places, so the `<p>` id and `aria-describedby` can never drift apart.
-
-### The whole run in four lines
-1. First draw: `emptySearch`, no errors, no summary.
-2. The user edits, so `change` replaces `search` and clears old messages.
-3. The user clicks **Search cabs**, so `handleSubmit` validates and either shows the field errors or the summary.
-4. **Clear** resets everything.
+### The whole run, in order
+1. First draw: `search` is empty, `errors` is `{}`, nothing is submitted.
+2. The user picks a city. The child calls `onChange`, the parent's `change(...)` saves the new `search` and clears old messages.
+3. The user clicks **Search cabs**. `handleSubmit` runs `validateSearch`.
+4. Errors found: `setErrors(found)` redraws, each `FormField` shows its message, and the matching input gets `aria-invalid`. No errors: `setSubmitted(search)` shows the green "Searching: ..." box.
+5. **Clear** resets `search`, `errors` and `submitted`.
 
 The three header comments in `SearchForm.tsx` say the same thing: **WHAT** is the form, **WHY** is that it is the front door, and **HOW** is to store, check on submit, and show errors or a summary.
+
