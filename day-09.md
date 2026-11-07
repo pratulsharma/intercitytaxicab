@@ -856,20 +856,53 @@ export default function FormField({ label, children }: { label: string; children
 - The `<select>` shows `value`, so it is **controlled**: the screen always shows what is in the parent's state.
 - This step passes only **data** on purpose, so you can see one direction first. It is incomplete: a controlled `<select>` with no way to report changes is stuck on its value, and React warns about it in the console. B2 adds the missing piece, which is a function passed as a prop in exactly the same way as `value`.
 ### B2. The child reports back (events go up)
-Right now picking a city does nothing, because only the parent can change `from`. So the parent also hands down a **function**:
+Right now picking a city does nothing, because only the parent can change `from`. So the parent also hands down a **function**. This is the confusing part, so we go slowly.
+
+**First: a function is just a value.** You can store it in a variable and give it to someone else, like a string:
+```ts
+const sayHi = (name: string) => console.log("Hi " + name);   // a function stored in a variable
+
+function runLater(callback: (name: string) => void) {        // receives a function as input
+  callback("Haridwar");                                       // ...and calls it
+}
+
+runLater(sayHi);   // prints "Hi Haridwar"
+```
+`runLater` does not know what `sayHi` does. It just calls whatever it was given. Passing a function as a prop works exactly like this.
+
+**Second: the same thing in our components, with clearer names.** The parent writes the function. The child only calls it:
 ```tsx
-// SearchForm.tsx (parent)
-<CitySelect label="From" value={from} onChange={(newCity) => setFrom(newCity)} />
+// SearchForm.tsx (parent): WRITES the function and hands it down
+const handleFromPicked = (newCity: string) => setFrom(newCity);   // runs in the parent
+
+<CitySelect label="From" value={from} onCityPicked={handleFromPicked} />
+//                                      ^ prop name        ^ the function being passed
 ```
 ```tsx
-// CitySelect.tsx (child)
-<select value={value} onChange={(event) => onChange(event.target.value)}>
+// CitySelect.tsx (child): RECEIVES the function and CALLS it
+export default function CitySelect({ label, value, onCityPicked }: Props) {
+  return (
+    <select value={value} onChange={(event) => onCityPicked(event.target.value)}>
+      ...
+    </select>
+  );
+}
 ```
-When the user picks a city:
-1. The browser fires the `<select>`'s `onChange` in the child.
-2. The child calls `onChange(event.target.value)`, the function it was given.
-3. That function runs **in the parent** and calls `setFrom(newCity)`.
-4. State changed, so React redraws the parent, which passes the new `value` down again.
+
+**Why the lesson's code looked confusing: there are two different `onChange`s.**
+- `<select onChange={...}>` is the **browser's own** event. React calls it with an `event` when the user picks an option.
+- `onChange` on `<CitySelect onChange={...}>` is our **own prop**. We only named it `onChange` because it mirrors the real one. We could call it `onCityPicked` and nothing changes.
+
+The real `CitySelect` in Step 5 names its prop `onChange` too, and the rest of this appendix uses that name. Whenever you see `onChange` on one of **our** components, read it as "the function the parent gave me, to call when the value should change".
+
+**Follow one click, step by step:**
+1. The user picks Haridwar.
+2. The browser calls the `<select>`'s `onChange`, giving it an `event`. `event.target.value` is `"haridwar"`.
+3. Our small arrow function runs: `onCityPicked("haridwar")`. That calls the function the child was given.
+4. The function it was given is `handleFromPicked`, written in the parent. So the parent's `handleFromPicked("haridwar")` runs, which calls `setFrom("haridwar")`.
+5. State changed, so React redraws the parent, which passes the new `value="haridwar"` down again.
+
+A phone-number comparison: the parent gives the child its **phone number** (the function). The child never decides anything. When something happens it just **calls that number**, and the parent picks up and acts.
 
 The child never stores the city. It asks the parent to change it. That loop (down with `value`, up with `onChange`) is what "lifting state up" means.
 
