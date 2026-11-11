@@ -104,7 +104,7 @@ git switch -c day-09
 - **How:** create `src/lib/validateSearch.ts`:
   ```ts
   // WHAT: Checks a search and returns a message for every field that is wrong.
-  // WHY:  The form shows these messages (Day 9). On Day 11 this becomes a Zod schema and on
+  // WHY:  The form shows these messages (Day 9). On Day 11 the same rules become one shared, simple function and on
   //       Day 19 the server runs the same checks again, because the browser can't be trusted.
   // HOW:  A pure function: same input gives the same output. "today" is passed in instead of
   //       read inside, which keeps it predictable and easy to test.
@@ -698,8 +698,8 @@ flowchart LR
   X[Anyone with curl or a script] -.->|skips the browser| N
 ```
 - **Browser validation is for the user's convenience.** It saves a round trip and gives instant messages. It can be bypassed in seconds (dev tools, curl, a script).
-- **Server validation is the real gate.** Everything that crosses from outside into your system is checked again, where nobody can tamper with it. On Day 11 the same rules become a Zod schema, and on Day 19 the API runs them again.
-- One shared rule file (`validateSearch.ts`, later the Zod schema) means the two checks can't disagree.
+- **Server validation is the real gate.** Everything that crosses from outside into your system is checked again, where nobody can tamper with it. On Day 11 the same rules become one shared function that the results page uses too, and on Day 19 the API runs them again.
+- One shared rule file (`validateSearch.ts`) means the two checks can't disagree.
 - **Say aloud:** "If browser validation is easy to bypass, why do we still write it?"
 
 ## DSA of the day (15–20 min)
@@ -788,7 +788,7 @@ More on this track: [system-design-and-dsa.md](./system-design-and-dsa.md).
 4. **Why do we copy state objects (`{ ...search, from }`) instead of changing them?** React decides to redraw by noticing a new value. Editing in place gives it nothing new to notice, so the screen goes stale.
 5. **What does `event.preventDefault()` do on a form submit?** It stops the browser's default behaviour (reloading the page with the form data) so our code can handle it.
 6. **Why validate on both the client and the server?** Client checks give fast feedback. Server checks are the real protection, because anything sent from a browser can be forged.
-7. **(System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?** Each place has a different purpose (UX vs security). Keep one shared rule definition (later a Zod schema) that both import.
+7. **(System design) Why is it fine to repeat the same validation rules in two places, and how do you keep them in sync?** Each place has a different purpose (UX vs security). Keep one shared rule function (`validateSearch`) that both import.
 8. **(Behavioural) Tell me about a feature you made more robust by thinking about bad input.** Use the validation list: empty fields, same city, past date, 0 or 13 passengers. Say how you found the cases and tested them in the sandbox.
 
 ## Appendix: Parent, child, grandchild: how data and errors flow

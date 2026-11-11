@@ -42,7 +42,7 @@ flowchart LR
   V[sampleOptions.ts<br/>VehicleType, CarOption, pickOptions]
   S -.->|Day 9| Form[SearchForm state]
   S -.->|Day 10| R[results page]
-  S -.->|Day 11| Z[Zod validation]
+  S -.->|Day 11| Z[One simple validation function]
   V -.->|Day 12| O[OptionCard]
 ```
 Solid arrows are code that exists after today. Dotted arrows are where these types are used later.
@@ -196,7 +196,7 @@ Each box is a net further from you. The cheapest place to catch a mistake is the
   | `(x: number): string` | a function taking a number and returning text | `formatPrice` |
 
   **Two ideas to say aloud**
-  - **Types are checked before the code runs, and then erased.** The browser never sees them. So TypeScript protects *you* from your own typos, but it cannot protect you from bad data arriving from outside (a form, a URL, an API). We handle that on Day 11 with Zod.
+  - **Types are checked before the code runs, and then erased.** The browser never sees them. So TypeScript protects *you* from your own typos, but it cannot protect you from bad data arriving from outside (a form, a URL, an API). We handle that on Day 11 with one plain validation function.
   - **`undefined` is the most common bug in JavaScript.** TypeScript's `string | undefined` makes it impossible to forget the "not found" case: it forces you to check (`if (found !== undefined)`) or to give a fallback (`found?.name ?? "Unknown"`). `?.` means "stop and give `undefined` if the thing before it is missing". `??` means "use this instead if the left side is `undefined` or `null`".
 
   **`type` vs `interface`:** for object shapes they do almost the same thing. We use `type` everywhere because it also handles unions. You will meet `interface` in other people's code, so you should be able to read it.
@@ -372,7 +372,7 @@ flowchart LR
   S -->|"types are erased at runtime"| X[So the server must still<br/>validate what arrives: Day 11, 19, 31]
 ```
 - A shared type stops the form and the server from drifting apart: change a field in one place and TypeScript points at every file that must change.
-- But types vanish when the code runs. A hacker can send anything to your server. So we use types for *developer safety* and validation (Zod, Day 11) for *runtime safety*.
+- But types vanish when the code runs. A hacker can send anything to your server. So we use types for *developer safety* and validation (a plain checking function, Day 11) for *runtime safety*.
 - **Say aloud:** "Why isn't a TypeScript type enough to protect my API?"
 
 ## DSA of the day (15–20 min)

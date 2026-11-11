@@ -35,10 +35,10 @@ Fill this in as you go. It is **your** record, so be honest: the point is to see
 | 8 | State and events | | | | | | |
 | 9 | SearchForm (From, To, date, passengers) | | | | | | |
 | 10 | Review day; Next.js routing and `searchParams` → `/results` with sample data | | | | | | |
-| 11 | Validation with Zod | | | | | | |
+| 11 | One simple validation function | | | | | | |
 | 12 | Results page: OptionCard, loading, empty, error states | | | | | | |
 | 13 | Trip details page | | | | | | |
-| 14 | Testing basics (Vitest) on a pure pricing function | | | | | | |
+| 14 | Testing basics (Vitest) on the search rules | | | | | | |
 | 15 | Review day; tests in CI; dev deploy on Vercel | | | | | | |
 | 16 | SQL and Postgres basics (Supabase) | | | | | | |
 | 17 | Schema, seed data, migrations | | | | | | |
@@ -91,7 +91,7 @@ Fill this in as you go. It is **your** record, so be honest: the point is to see
 | TypeScript | 6 | | | | | | | | |
 | React state and events | 8 | | | | | | | | |
 | Next.js routing and server pages | 10 | | | | | | | | |
-| Validation (Zod) | 11 | | | | | | | | |
+| Validation (plain checks) | 11 | | | | | | | | |
 | Testing | 14 | | | | | | | | |
 | SQL and Postgres | 16 | | | | | | | | |
 | APIs (REST, route handlers) | 19 | | | | | | | | |
@@ -205,7 +205,7 @@ I add 6 or more questions here each week, copied from that week's day files, wit
 | Week | Topics you should be able to explain at the end |
 |---|---|
 | 2 React and Next | TypeScript types and interfaces, props vs state, controlled inputs, `useState`, routing, `searchParams`, server vs client components |
-| 3 Results and booking UI | Zod validation, loading, empty and error states, multi-step flows, unit tests, test pyramid, preview deploys |
+| 3 Results and booking UI | Simple validation, loading, empty and error states, multi-step flows, unit tests, test pyramid, preview deploys |
 | 4 Database and API | Primary and foreign keys, joins, indexes, migrations, environments, REST, status codes, API versioning, env vars and secrets |
 | 5 Booking and staff login | Idempotency, never trusting the client, sessions and cookies, authentication vs authorization, RLS, pagination and filtering |
 | 6 Admin and notifications | State machines, transactions, CRUD, email and third-party API failure, retries, URL encoding, date and time-zone logic |

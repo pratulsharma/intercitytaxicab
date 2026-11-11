@@ -118,7 +118,7 @@ export function searchToQuery(input: SearchInput): URLSearchParams {
 }
 ```
 
-Parsing answers "is it the right basic shape?" Validation answers "does it obey our rules?" Tomorrow, Zod strengthens the date and city checks.
+Parsing answers "is it the right basic shape?" Validation answers "does it obey our rules?" Tomorrow, one shared `validateSearch` function checks the date and cities with plain `if` statements.
 
 ## Step 4: Navigate after a valid submit
 

@@ -81,10 +81,10 @@ All of that is a **team project of several months**. You are one complete beginn
 | | 8 | State and events *(written)* | `useState`, events |
 | | 9 | SearchForm (From, To, date, passengers) *(written)* | controlled inputs, lifting state up |
 | | 10 | **Review day**; Next.js routing and `searchParams` → `/results` with sample data | routing, URL params |
-| **3 Results and booking UI** | 11 | Validation with Zod | schemas |
+| **3 Results and booking UI** | 11 | One simple validation function | plain `if` validation |
 | | 12 | Results page: OptionCard, loading, empty, error states | UI states |
 | | 13 | Trip details page | forms, multi-step flow |
-| | 14 | Testing basics (Vitest) on a pure pricing function | unit tests |
+| | 14 | Testing basics (Vitest) on the search rules | unit tests |
 | | 15 | **Review day**; tests in CI; dev deploy on Vercel | preview deploys |
 | **4 Database and API** | 16 | SQL and Postgres basics (Supabase) | tables, SELECT |
 | | 17 | Schema, seed data, migrations | migrations, joins |
