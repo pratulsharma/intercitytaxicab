@@ -87,10 +87,7 @@ console.log(query.get("passengers")); // "4", not the number 4
 import type { SearchInput } from "@/lib/search";
 
 export type SearchQuery = Record<string, string | string[] | undefined>;
-type ReadResult =
-  | { success: true; data: SearchInput }
-  | { success: false; message: string };
-
+type ReadResult = { success: true; data: SearchInput } | { success: false; message: string };
 export function readSearchQuery(query: SearchQuery): ReadResult {
   const { from, to, date, passengers } = query;
   if (
