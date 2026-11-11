@@ -31,7 +31,7 @@ sequenceDiagram
   participant D as Postgres
   B->>E: GET /search?from=haridwar&to=badrinath&date=...&passengers=4
   E->>S: cache miss, forward request
-  S->>S: validate input (Zod)
+  S->>S: validate input (same rules as the form)
   S->>G: getOptions(input)
   G->>D: active fares + vehicle types for this route, season rule for date
   D-->>G: rows
