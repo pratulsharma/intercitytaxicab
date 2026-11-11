@@ -9,7 +9,7 @@ export const todayAsIsoDate =(): string =>{
     const now = new Date();
     // comments: to convert to string in JS we use String(xxxx)
     const month =  String(now.getMonth()+1).padStart(2,"0")
-    const day =  String(now.getDate()+1).padStart(2,"0")
+    const day =  String(now.getDate()).padStart(2,"0")
     console.log("Date", now, month)
     return `${now.getFullYear()}-${month}-${day}`
 }

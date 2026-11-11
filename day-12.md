@@ -1,43 +1,45 @@
-# Day 12: Results cards, loading, empty and error states (3h)
+# Day 12: Result cards, and what to show when things go wrong (3h)
 
-**Goal:** make search results readable and make every outcome visible, not just the successful one.
-**New today (max 2):** UI states; route loading/error boundaries.
-**Reused:** props, array mapping, server pages, validation and Tailwind.
+**Goal:** show the cars as clear cards, and make sure every outcome has a visible screen: results, no cars, loading, and an unexpected error.
+**New today (max 2):** a reusable card component; the `loading.tsx` and `error.tsx` files.
+**Reused:** props, `.map()`, the results page, `validateSearch`, Tailwind.
 **Branch:** `day-12`, from `develop`.
-**Time:** recall 10 min; state sketch 20; build 65; checks 30; PR and notes 25; design 10; optional DSA 20 = 180 min.
+**Time:** recall 10 min; sketch 20; build 60; try every state 30; PR and notes 25; design 10; optional DSA 20 = 175 min.
 
-Prerequisite: [Day 11](./day-11.md). Commands run in `shubh-yatra-cabs`.
+**Prerequisite:** [Day 11](./day-11.md). Run commands inside `shubh-yatra-cabs`.
 
 ## Recall (10 min)
-1. What does `safeParse` return on failure?
-2. Why can't the results page trust a URL?
-3. What does `key` do in a list?
+1. What does `validateSearch` return when a search is fine?
+2. Why does `readSearchFromUrl` not complain about bad values itself?
+3. What does `key` do when you `.map()` a list in React?
 
 <details><summary>Answers</summary>
 
-1. A failure result with validation issues. 2. Anyone can edit it.
-3. Helps React identify items across renders; use a stable unique ID.
+1. `{}`, an empty object.
+2. It only turns text into a search object. `validateSearch` does the judging, so each function has one job.
+3. It helps React tell the list items apart. Use a stable unique value, such as `option.id`.
 </details>
 
 ## Picture: four outcomes, not one
 
-```text
-Request -> validate
-             |
-       invalid? -> "Check your search" (expected, actionable)
-             |
-          loading -> visible progress
-             |
-          success -> cars found -> cards
-             |         |
-             |         +-> zero cars -> empty message
-             |
-          unexpected failure -> error boundary + retry
+```mermaid
+flowchart TD
+  A[Results page opens] --> B{Is the search valid?}
+  B -->|no| C["Check your search<br/>(messages + Edit search link)"]
+  B -->|yes| D{Waiting for the page?}
+  D -->|yes| L["Loading message"]
+  D -->|no| E{Any cars fit?}
+  E -->|yes| F["Cards"]
+  E -->|no| G["No cars fit this group"]
+  A -.->|something breaks| H["Error screen with Try again"]
 ```
 
-An empty list is not a server error. Invalid input is not an exception. Unexpected failures must not be disguised as successful empty results.
+Three things that are easy to mix up:
+- **Invalid search:** the user typed something wrong. Tell them what to fix.
+- **No cars:** the search was fine, there are just no matches. That is not an error.
+- **Error:** something broke unexpectedly. Never show this as "no cars", because that hides the problem.
 
-## Step 1: Branch and practice (20 min)
+## Step 1: Branch and sketch (20 min)
 
 ```bash
 git switch develop
@@ -45,116 +47,109 @@ git pull --ff-only
 git switch -c day-12
 ```
 
-On paper, draw the success, empty, loading and failure views. For each, answer: "What can the traveler do next?" Loading should announce progress; the other three should offer a next action.
+On paper, draw four small screens: cards, no cars, loading, error. Under each, write **what the user can do next**. For example: "Edit search", "Try again". The loading screen is the only one that needs no action.
 
-## Step 2: Extract a card (25 min)
+## Step 2: A card for one car (20 min)
 
 **What:** create `src/components/OptionCard.tsx`.
-**Why:** the page chooses which options to show; the card only presents one.
-**How:**
+**Why:** the page decides *which* cars to show. The card only knows how to draw *one* car.
+**How:** first, the idea in the smallest form. A component is a function that receives props and returns what to draw:
 
 ```tsx
-// WHAT: Display one sample vehicle option.
-// WHY: Keep presentation separate from search rules.
-// HOW: Receive a typed option; do not calculate fares here.
+function Hello({ name }: { name: string }) {
+  return <p>Hello {name}</p>;
+}
+// <Hello name="Asha" />   draws: Hello Asha
+```
+
+Our card does the same, with a car as the prop:
+
+```tsx
+// WHAT: Draw one car option as a card.
+// WHY: Keep drawing separate from choosing which cars to show.
+// HOW: Receive one car as a prop and show its details.
+import { formatPrice } from "@/lib/format";
 import type { CarOption } from "@/lib/sampleOptions";
 
 export default function OptionCard({ option }: { option: CarOption }) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-xl font-semibold">{option.name}</h2>
-      <p className="mt-2">{option.seats} passenger seats</p>
-      <p className="mt-2 font-bold">INR {option.priceInr}</p>
-      <p className="mt-2 text-sm text-slate-600">Sample fare, not a confirmed booking.</p>
+      <p className="mt-2">{option.seats} seats</p>
+      <p className="mt-2 font-bold">{formatPrice(option.priceInr)}</p>
+      <p className="mt-2 text-sm text-slate-600">Sample price, not a real booking.</p>
     </article>
   );
 }
 ```
 
-Do not add a clickable-looking button that does nothing. Day 13 will add the real navigation link.
+Do not add a button that does nothing. Day 13 adds a real link.
 
-In `results/page.tsx`, import the card and replace the old list mapping:
+## Step 3: Use the card on the results page (15 min)
+
+**What:** replace the old list in `src/app/results/page.tsx`.
+**Why:** one `<OptionCard />` per car.
+**How:** add the import, then use this where you list the cars:
 
 ```tsx
-<ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-  {options.map((option) => (
-    <li key={option.id}>
-      <OptionCard option={option} />
-    </li>
-  ))}
-</ul>
+import OptionCard from "@/components/OptionCard";
 ```
 
-Keep the outer search description, demo warning and Change search link.
-
-## Step 3: Prepare a data boundary (15 min)
-
-**What:** create `src/lib/getDemoOptions.ts`.
-**Why:** later we can replace sample reads with database reads without putting database logic in the card.
-**How:**
-
-```ts
-// WHAT: Return demo vehicles for a validated search.
-// WHY: Keep the data source behind one small function.
-// HOW: Use sample cars today; real route fares replace this in the database lessons.
-import type { SearchInput } from "@/lib/search";
-import { pickOptions, sampleOptions, type CarOption } from "@/lib/sampleOptions";
-
-export async function getDemoOptions(input: SearchInput): Promise<CarOption[]> {
-  return pickOptions(sampleOptions, input.passengers);
-}
+```tsx
+{options.length === 0 ? (
+  <p>No sample cars fit this group. Try fewer passengers.</p>
+) : (
+  <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {options.map((option) => (
+      <li key={option.id}>
+        <OptionCard option={option} />
+      </li>
+    ))}
+  </ul>
+)}
 ```
 
-In the results page, replace the sample-options import with `getDemoOptions` and use:
+Read it:
+- `options.length === 0 ? A : B` means "if there are no cars show A, otherwise show B".
+- `.map` turns each car into one `<li>` holding one card.
+- `key={option.id}` goes on the outermost element inside the `.map`.
 
-```ts
-const options = await getDemoOptions(input);
-```
-
-The async interface prepares for a network data source. It does not make these in-memory values slow or turn them into live fares. Keep validation before the call.
-
-## Step 4: Loading and unexpected errors (25 min)
+## Step 4: A loading message (10 min)
 
 **What:** create `src/app/results/loading.tsx`.
-**Why:** route navigation should not look frozen while server content is pending.
+**Why:** while Next.js is preparing the page, the user should see something rather than a blank screen.
 **How:**
 
 ```tsx
-// WHAT: A route-level loading fallback.
-// WHY: Tell the traveler the search is in progress.
-// HOW: Next.js places this UI in a loading boundary for the route segment.
+// WHAT: A message shown while the results page is loading.
+// WHY: A blank screen feels broken.
+// HOW: Next.js shows this file automatically for the /results route.
 export default function Loading() {
-  return <p role="status" className="p-6">Loading sample cab options...</p>;
+  return <p role="status" className="p-6">Loading cab options...</p>;
 }
 ```
 
-Keep Day 10's inner `Suspense` too: it encloses the request-dependent work when Cache Components is enabled. Its fallback may be the message you actually see. Neither boundary guarantees a visible pause for an instant data source.
+Keep the `Suspense` from Day 10 in the page too. Our data is in memory, so loading is instant and you will rarely see this message. Step 6 shows how to see it on purpose.
 
-Create `src/app/results/error.tsx`:
+## Step 5: An error screen (15 min)
+
+**What:** create `src/app/results/error.tsx`.
+**Why:** if something unexpected throws, the user sees a helpful screen instead of a broken page.
+**How:**
 
 ```tsx
-// WHAT: Recover from an unexpected results-page failure.
-// WHY: A server failure must not look like "no cars".
-// HOW: Log the error and offer a boundary retry or a return to search.
+// WHAT: The screen shown when the results page breaks unexpectedly.
+// WHY: A crash must not look like "no cars found".
+// HOW: Next.js passes us the error and a reset function that tries again.
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 
-type Props = {
-  error: Error & { digest?: string };
-  reset: () => void;
-};
-
-export default function ResultsError({ error, reset }: Props) {
-  useEffect(() => {
-    console.error("Results page failed", error);
-  }, [error]);
-
+export default function ResultsError({ reset }: { reset: () => void }) {
   return (
     <section className="mx-auto max-w-5xl px-6 py-16">
       <h1 className="text-2xl font-bold">We couldn't load the results</h1>
-      <p role="alert">Please try again. Your booking has not been created.</p>
+      <p role="alert">Please try again. Nothing has been booked.</p>
       <button type="button" onClick={reset} className="mt-4 rounded border p-3">
         Try again
       </button>
@@ -164,9 +159,11 @@ export default function ResultsError({ error, reset }: Props) {
 }
 ```
 
-`error.tsx` must be a Client Component. The boundary catches unexpected failures below it, not its own errors or errors in a parent layout. Production server errors are sanitized; do not show raw stack traces to customers. Console logging is a learning-stage diagnostic, not a replacement for production monitoring.
+- `"use client"` is required in `error.tsx`, because it has a button with a click handler.
+- `reset` is a function Next.js gives us. Calling it tries to draw the page again.
+- Never show the raw error text to customers. It can leak details.
 
-## Step 5: Exercise each state (30 min)
+## Step 6: Try every state (30 min)
 
 ```bash
 npm run lint
@@ -175,54 +172,55 @@ npm run build
 npm run dev
 ```
 
-| State | How to exercise it | Expected |
+| State | How to see it | Expected |
 |---|---|---|
-| Success | Valid future search for 2 passengers | Cards with stable IDs, capacity, sample price |
-| Invalid | Edit URL to an unknown city | Validation feedback, not the error boundary |
-| Empty | Temporarily return `[]` from `getDemoOptions` | Honest no-options message and Change search link |
-| Failure | Temporarily throw `new Error("Demo failure")` inside `getDemoOptions` | Error UI, diagnostic log, retry control |
-| Loading | In a separate temporary test, await a short timeout before returning | A loading fallback, then cards |
+| Cards | A valid future search for 2 passengers | One card per car, with seats and price |
+| Invalid search | Edit the URL: `from=nowhere` | "Check your search" with the message, **not** the error screen |
+| No cars | Temporarily change the page to `const options: CarOption[] = [];` | "No sample cars fit this group." |
+| Error | Temporarily add `throw new Error("test");` at the top of `Results` | The error screen with **Try again** |
+| Loading | Temporarily add `await new Promise((r) => setTimeout(r, 1500));` at the top of `Results` | "Loading cab options..." for 1.5 s, then the cards |
 
-For the loading drill only, add `await new Promise((resolve) => setTimeout(resolve, 1500));` inside `getDemoOptions`. **Remove all injected delays, throws and empty returns afterward.** Do not ship test-only query flags or hide failures with `catch { return [] }`.
+**After each drill, remove the temporary line.** Never commit a deliberate error, delay or empty list.
 
-The dev error overlay may appear during the failure drill; dismiss it to inspect the boundary. For a production check, stop the dev server and use `npm run build && npm start`. After removing the intentional error, reload; a persistent failure is not fixed merely by clicking Retry.
+In dev mode a red error overlay may appear over the error screen. Close it with the X to see the real screen.
 
-With the reference's 12-seat sample vehicle, every allowed passenger count may fit something. Use the temporary empty source rather than treating invalid `passengers=13` as an empty search.
+## Break it on purpose (5 min)
+- Delete `"use client"` from `error.tsx`: Next.js complains about the click handler. Put it back.
+- Delete `key={option.id}`: the console warns about a missing `key`. Put it back.
+- Show "No cars" for the thrown error: explain to yourself why that would hide an outage.
 
-## Break it / common errors
-- Remove `"use client"` from the error boundary: the hooks/event handler become invalid. Restore it.
-- Remove list keys: inspect the console warning; restore stable keys.
-- Show "No cars" for a thrown exception: explain why that hides an outage.
-- Your own sample names and capacities may differ; test behavior, not exact card text.
+## Common errors
+- The card shows `NaN` or empty text: check the field names against your `sampleOptions.ts` (`seats`, `priceInr`).
+- `Module not found` for `OptionCard`: check the import path and the file name.
+- The error screen never appears: the throw must happen while the page draws, not inside a click handler.
 
 ## Finish (25 min)
-- [ ] All four states and invalid input exercised.
-- [ ] Fault injections removed.
-- [ ] Keyboard navigation, headings and narrow-screen layout checked.
-- [ ] Lint, typecheck and build pass after cleanup.
+- [ ] All five states were seen, and every temporary line was removed.
+- [ ] Tab through the page with the keyboard. The links and buttons are reachable.
+- [ ] Looks fine on a narrow window.
+- [ ] Lint, typecheck and build pass.
 
 ```bash
 git add src
-git commit -m "Day 12: option cards and explicit results states"
+git commit -m "Day 12: option cards, loading and error screens"
 git push -u origin day-12
 ```
 
-PR into `develop`, wait for CI, merge. Write `docs/day-12.md`: empty versus failure, how you tested loading, one screenshot or sketch.
+PR into `develop`, wait for CI, merge. Write `docs/day-12.md`: the difference between "no cars" and "error" in your own words, and which drill taught you the most.
 
-## System design corner (10 min): Graceful degradation
-Separate independent page sections so one failing source need not erase the whole page. But "graceful" does not mean inventing availability, prices or success. Preserve reliable content, clearly label unavailable functions, and record unexpected errors.
+## System design corner (10 min): Failing nicely
+When one part of a page fails, the rest can still work. But be honest: never invent prices, cars or success messages to cover a failure. Show what you reliably know, say what is unavailable, and note the error so you can fix it.
 
 ## DSA (optional, 20 min): Merge Sorted Array
-Implement `mergeSorted(a: number[], b: number[]): number[]` using two pointers.
-- `[1, 4, 7]` and `[2, 4, 8]` -> `[1, 2, 4, 4, 7, 8]`.
-- Test an empty side, both empty, duplicates and unequal lengths.
-- O(n + m) time and O(n + m) output space.
-- Extension: solve the interview variant in place where the first array has spare slots; fill from the back so you do not overwrite unread values.
+Write `mergeSorted(a: number[], b: number[]): number[]` using two pointers.
+- `[1, 4, 7]` and `[2, 4, 8]` give `[1, 2, 4, 4, 7, 8]`.
+- Try an empty side, both empty, duplicates and different lengths.
+- O(n + m) time.
 
 ## Interview Q&A
-1. **Empty versus error?** A successful request with zero matches versus a failed request.
-2. **Why a data function?** Keeps fetching separate from presentation and makes replacing the source easier.
-3. **Does Suspense handle every exception?** No; it handles waiting. An error boundary handles unexpected render failures.
-4. **Behavioral:** Explain a failure drill and what it taught you.
+1. **Empty result versus error?** Empty means the request worked and nothing matched. An error means the request failed.
+2. **Why a separate card component?** The page chooses the cars, the card draws one. Each can change without touching the other.
+3. **What does an error boundary do?** It catches unexpected failures while drawing and shows a fallback screen instead of a broken page.
+4. **Behavioral:** Describe testing a failure on purpose and what you learned.
 
 Next: [Day 13](./day-13.md).

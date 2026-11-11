@@ -1,43 +1,38 @@
-# Day 13: Trip details - connect the next step without pretending to book (3h)
+# Day 13: Trip details, the next step after choosing a car (3h)
 
-**Goal:** choose a sample vehicle, open `/trip-details`, and fill a local booking-request draft. No request is stored or sent yet.
-**New today (max 2):** multi-step URL flow; form submission with `FormData`.
-**Reused:** schemas, typed props, client state, server validation, `Link`.
+**Goal:** choose a car on the results page, open a `/trip-details` page, and fill in a practice details form. Nothing is sent or saved.
+**New today (max 2):** passing a choice to the next page in the URL; a form with several text fields.
+**Reused:** `Link`, props, `useState` and controlled inputs (Day 9), `validateSearch`, `readSearchFromUrl`.
 **Branch:** `day-13`, from `develop`.
-**Time:** recall 10 min; flow sketch 15; build 80; checks 25; PR and notes 20; design 10; optional DSA 20 = 180 min.
+**Time:** recall 10 min; sketch 15; build 80 min; checks 25; PR and notes 20; design 10; optional DSA 20 = 180 min.
 
-Prerequisite: [Day 12](./day-12.md). Run commands inside `shubh-yatra-cabs`.
+**Prerequisite:** [Day 12](./day-12.md). Run commands inside `shubh-yatra-cabs`.
 
 ## Recall (10 min)
-1. Why is an empty list different from an error?
-2. Why should an option card not fetch its own fare?
-3. What information is unsafe to place in a URL?
+1. What is the difference between "no cars" and an error?
+2. Why does `OptionCard` not look up its own price?
+3. Which information must never go in a URL?
 
 <details><summary>Answers</summary>
 
-1. Zero matches is a valid result. 2. Keep data/business rules separate from presentation.
-3. Personal details, credentials and secrets.
+1. "No cars" is a normal result with zero matches. An error is something that broke.
+2. The card only draws what it is given. The data and rules live elsewhere.
+3. Names, phone numbers, addresses, passwords and secrets. URLs are saved in history and logs and can be shared.
 </details>
 
-## Picture: route state versus private form state
+## Picture: what travels in the URL, and what does not
 
-```text
-/results?from=...&to=...&date=...&passengers=2
-                       |
-                       | select option.id
-                       v
-/trip-details?from=...&to=...&date=...&passengers=2&option=car
-                       |
-                       | server validates search + selected option
-                       v
-Trip summary + name / phone / pickup fields
-                       |
-                       | local submit only
-                       v
-"Draft checked. Nothing has been sent or saved."
+```mermaid
+flowchart TD
+  R["/results?from=..&to=..&date=..&passengers=2"] -->|click Choose this vehicle| T["/trip-details?from=..&to=..&date=..&passengers=2&option=suv"]
+  T --> V[check the search again, then find the car by its id]
+  V --> F[Trip summary + form: name, phone, pickup]
+  F -->|Check details| M["'Details look fine. Nothing was sent or saved.'"]
 ```
 
-Use your actual sample option ID, not necessarily `car` or the reference's `sedan`.
+- **In the URL:** the public search, plus which car was picked (`option=suv`).
+- **Not in the URL:** the name, phone and address. They stay in the form, in the browser's memory.
+- **Not in the URL:** the price. The page looks the price up again from the car list, so editing the URL cannot change it.
 
 ## Step 1: Branch and sketch (15 min)
 
@@ -47,38 +42,47 @@ git pull --ff-only
 git switch -c day-13
 ```
 
-Draw the screens above. Decide which values can be reconstructed from the URL and which must stay out of it. A real server-created booking reference arrives on Day 21, not today.
+Sketch the trip-details screen: a summary at the top, three fields, one button. Write down which values come from the URL and which the user types.
 
-## Step 2: Give each card a real next action (15 min)
+## Step 2: Give each card a link (15 min)
 
-**What:** extend `OptionCard` with `href: string`.
-**Why:** use navigation semantics for navigation; do not use a button with no handler.
-**How:** add the import and update the props:
+**What:** add a "Choose this vehicle" link to `OptionCard`.
+**Why:** moving to another page is navigation, so use a link, not a button.
+**How:** first the idea. A `Link` is a clickable address:
 
 ```tsx
 import Link from "next/link";
+<Link href="/trip-details?option=suv">Choose this vehicle</Link>
+```
 
-type Props = { option: CarOption; href: string };
-// Replace the old function signature:
-export default function OptionCard({ option, href }: Props) {
-  // Keep the existing article content.
+In `OptionCard.tsx`, take a new prop `href` and use it:
+
+```tsx
+import Link from "next/link";
+// ...existing imports
+
+export default function OptionCard({ option, href }: { option: CarOption; href: string }) {
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      {/* ...everything that was already inside the article... */}
+      <Link href={href} className="mt-4 inline-block rounded bg-slate-900 px-4 py-2 text-white">
+        Choose this vehicle
+      </Link>
+    </article>
+  );
 }
 ```
 
-Inside the existing article, after the demo warning, add:
+In `results/page.tsx`, build the address for each car. `searchToQuery(input)` already turns the search into URL text. We add the car's id:
 
 ```tsx
-<Link href={href} className="mt-4 inline-block rounded bg-slate-900 px-4 py-2 text-white">
-  Choose this vehicle
-</Link>
+import { readSearchFromUrl, searchToQuery, type SearchQuery } from "@/lib/searchQuery";
 ```
-
-In `results/page.tsx`, import `searchToQuery` alongside `readSearchQuery`. Change the mapping to a block that builds each URL:
 
 ```tsx
 {options.map((option) => {
-  const query = searchToQuery(input);
-  query.set("option", option.id);
+  const query = searchToQuery(input);          // from=..&to=..&date=..&passengers=..
+  query.set("option", option.id);              // add option=suv
   return (
     <li key={option.id}>
       <OptionCard option={option} href={`/trip-details?${query.toString()}`} />
@@ -87,26 +91,27 @@ In `results/page.tsx`, import `searchToQuery` alongside `readSearchQuery`. Chang
 })}
 ```
 
-Do not include a price in the URL. On the next page, look it up again from the sample source.
+Note the `{ ... return (...) }` block: when `.map` needs a few lines of work before it returns, use a block with `return`.
 
-## Step 3: Create the trip-details route (30 min)
+## Step 3: The trip-details page (30 min)
 
 **What:** create `src/app/trip-details/page.tsx`.
-**Why:** someone can open this URL directly, without visiting the results page.
-**How:**
+**Why:** someone can open this address directly, so the page must check everything itself.
+**How:** it reads the search, checks it, finds the car, and shows a summary. The `Suspense` and `connection()` parts are the same wrapper as the results page. Copy that pattern.
 
 ```tsx
-// WHAT: Validate a selected sample vehicle and display the trip-details form.
-// WHY: URLs can be edited and client-provided prices cannot be trusted.
-// HOW: Re-read the options for the validated search and find the selected ID.
+// WHAT: Show the chosen car and the details form.
+// WHY: The URL can be edited, so the page checks the search and the car again.
+// HOW: Read search -> validate -> find the car by id -> show summary and form.
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import TripDetailsForm from "@/components/TripDetailsForm";
 import { todayAsIsoDate } from "@/lib/dates";
-import { getDemoOptions } from "@/lib/getDemoOptions";
+import { formatPrice } from "@/lib/format";
+import { pickOptions, sampleOptions } from "@/lib/sampleOptions";
 import { describeSearch } from "@/lib/search";
-import { readSearchQuery, searchToQuery, type SearchQuery } from "@/lib/searchQuery";
+import { readSearchFromUrl, searchToQuery, type SearchQuery } from "@/lib/searchQuery";
 import { validateSearch } from "@/lib/validateSearch";
 
 type Props = { searchParams: Promise<SearchQuery> };
@@ -114,44 +119,45 @@ type Props = { searchParams: Promise<SearchQuery> };
 async function TripDetails({ searchParams }: Props) {
   await connection();
   const query = await searchParams;
-  const parsed = readSearchQuery(query);
-  if (!parsed.success) {
-    return <p role="alert">{parsed.message} <Link href="/">Edit search</Link></p>;
-  }
-  const input = parsed.data;
+  const input = readSearchFromUrl(query);
   const errors = validateSearch(input, todayAsIsoDate());
+
   if (Object.keys(errors).length > 0) {
     return (
       <section>
-        <h1>Check your search</h1>
-        <ul>{Object.entries(errors).map(([field, message]) => (
-          <li key={field}>{message}</li>
-        ))}</ul>
+        <h1 className="text-2xl font-bold">Check your search</h1>
+        <ul>
+          {Object.entries(errors).map(([field, message]) => (
+            <li key={field}>{message}</li>
+          ))}
+        </ul>
         <Link href="/">Edit search</Link>
       </section>
     );
   }
 
-  const options = await getDemoOptions(input);
-  const selected = typeof query.option === "string"
-    ? options.find((option) => option.id === query.option)
-    : undefined;
+  // Cars that fit this group, then the one whose id is in the URL
+  const options = pickOptions(sampleOptions, input.passengers);
+  const optionId = typeof query.option === "string" ? query.option : "";
+  const selected = options.find((option) => option.id === optionId);
   const backHref = `/results?${searchToQuery(input).toString()}`;
+
   if (!selected) {
     return (
       <p role="alert">
-        Choose a vehicle that fits this search. <Link href={backHref}>Back to options</Link>
+        Please choose a car that fits this group. <Link href={backHref}>Back to cars</Link>
       </p>
     );
   }
+
   return (
     <section>
       <h1 className="text-2xl font-bold">Trip details</h1>
       <p>{describeSearch(input)}</p>
-      <p>{selected.name} - sample fare INR {selected.priceInr}</p>
-      <p className="my-4">Practice only: this does not reserve a vehicle.</p>
+      <p>{selected.name}, sample price {formatPrice(selected.priceInr)}</p>
+      <p className="my-4">Practice only. This does not book a car.</p>
       <TripDetailsForm />
-      <Link href={backHref} className="mt-6 inline-block underline">Back to options</Link>
+      <Link href={backHref} className="mt-6 inline-block underline">Back to cars</Link>
     </section>
   );
 }
@@ -167,150 +173,169 @@ export default function TripDetailsPage(props: Props) {
 }
 ```
 
-This checks capacity again because `getDemoOptions` filters by passengers before the ID lookup. A made-up ID, duplicated `option` field, or too-small car must not produce a valid selection.
+Read the new line `options.find(...)`:
+- `.find` returns the **first** car where the test is true, or `undefined` if there is none.
+- We search the cars that **fit the group**, not the whole list. A made-up id, or a car that is too small, finds nothing, and the page asks the user to choose again.
 
-For unexpected errors, create `src/app/trip-details/error.tsx` using the Day 12 boundary pattern. Change the log label to `"Trip details page failed"` and the heading to `"We couldn't load trip details"`; keep retry, logging and the home link. Do not convert data-source failures into "invalid vehicle".
+If something throws unexpectedly, you can copy Day 12's `error.tsx` into `src/app/trip-details/`. Change the heading text.
 
-## Step 4: Build a local draft form (35 min)
+## Step 4: The details form (35 min)
 
 **What:** create `src/components/TripDetailsForm.tsx`.
-**Why:** learn submission separately from persistence and booking confirmation.
-**How:**
+**Why:** practice a form with several text fields, using the same controlled-input pattern as Day 9.
+**How:** first, the pattern in one field:
 
 ```tsx
-// WHAT: Check a local customer-details draft without sending or saving it.
-// WHY: Practice form submission before introducing the booking API.
-// HOW: Read FormData on submit, validate, and display explicit draft feedback.
+const [name, setName] = useState("");
+<input value={name} onChange={(event) => setName(event.target.value)} />
+```
+
+The component keeps all three fields in **one object**, like the search form:
+
+```tsx
+// WHAT: A practice form for name, phone and pickup address. Nothing is sent or saved.
+// WHY: Practice controlled text fields and simple checks.
+// HOW: One state object for the values, one for the error messages, check on submit.
 "use client";
 
 import { useState } from "react";
-import { z } from "zod";
 
-const detailsSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name.").max(100),
-  phone: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number."),
-  pickup: z.string().trim().min(10, "Enter a more complete pickup address.").max(500),
-});
+type Details = { name: string; phone: string; pickup: string };
+type DetailsErrors = Partial<Record<keyof Details, string>>;
 
-type Errors = { name?: string; phone?: string; pickup?: string };
-const inputClass = "mt-1 block w-full rounded border border-slate-300 p-3";
+const emptyDetails: Details = { name: "", phone: "", pickup: "" };
+
+// true when every character is 0-9
+function onlyDigits(text: string): boolean {
+  for (const character of text) {
+    if (character < "0" || character > "9") return false;
+  }
+  return true;
+}
+
+function checkDetails(details: Details): DetailsErrors {
+  const errors: DetailsErrors = {};
+  if (details.name.trim().length < 2) errors.name = "Please enter your name.";
+  if (details.phone.length !== 10 || !onlyDigits(details.phone)) {
+    errors.phone = "Enter a 10-digit mobile number.";
+  }
+  if (details.pickup.trim().length < 10) errors.pickup = "Please enter a fuller pickup address.";
+  return errors;
+}
 
 export default function TripDetailsForm() {
-  const [errors, setErrors] = useState<Errors>({});
+  const [details, setDetails] = useState<Details>(emptyDetails);
+  const [errors, setErrors] = useState<DetailsErrors>({});
   const [checked, setChecked] = useState(false);
 
+  function change(field: keyof Details, value: string) {
+    setDetails({ ...details, [field]: value });   // copy, then replace one field
+    setErrors({});
+    setChecked(false);
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();                       // no page reload
+    const found = checkDetails(details);
+    setErrors(found);
+    setChecked(Object.keys(found).length === 0);
+  }
+
   return (
-    <form
-      noValidate
-      onChange={() => setChecked(false)}
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const result = detailsSchema.safeParse({
-          name: data.get("name"), phone: data.get("phone"), pickup: data.get("pickup"),
-        });
-        const next: Errors = {};
-        if (!result.success) {
-          for (const issue of result.error.issues) {
-            const field = issue.path[0];
-            if (field === "name" || field === "phone" || field === "pickup") {
-              next[field] ??= issue.message;
-            }
-          }
-        }
-        setErrors(next);
-        setChecked(result.success);
-      }}
-      className="mt-6 space-y-4"
-    >
+    <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
       <div>
-        <label htmlFor="customer-name">Name</label>
-        <input id="customer-name" name="name" autoComplete="name" maxLength={100}
-          className={inputClass} aria-invalid={!!errors.name}
-          aria-describedby={errors.name ? "name-error" : undefined} />
-        {errors.name && <p id="name-error" className="text-red-700">{errors.name}</p>}
+        <label htmlFor="name">Name</label>
+        <input id="name" value={details.name} onChange={(e) => change("name", e.target.value)}
+          className="mt-1 block w-full rounded border p-3" />
+        {errors.name && <p className="text-red-700">{errors.name}</p>}
       </div>
       <div>
-        <label htmlFor="customer-phone">Mobile number (India, 10 digits)</label>
-        <input id="customer-phone" name="phone" type="tel" inputMode="tel"
-          autoComplete="tel-national" maxLength={10}
-          className={inputClass} aria-invalid={!!errors.phone}
-          aria-describedby={errors.phone ? "phone-error" : undefined} />
-        {errors.phone && <p id="phone-error" className="text-red-700">{errors.phone}</p>}
+        <label htmlFor="phone">Mobile number (10 digits)</label>
+        <input id="phone" type="tel" value={details.phone} onChange={(e) => change("phone", e.target.value)}
+          className="mt-1 block w-full rounded border p-3" />
+        {errors.phone && <p className="text-red-700">{errors.phone}</p>}
       </div>
       <div>
-        <label htmlFor="pickup-address">Pickup address</label>
-        <textarea id="pickup-address" name="pickup" rows={3} maxLength={500}
-          className={inputClass} aria-invalid={!!errors.pickup}
-          aria-describedby={errors.pickup ? "pickup-error" : undefined} />
-        {errors.pickup && <p id="pickup-error" className="text-red-700">{errors.pickup}</p>}
+        <label htmlFor="pickup">Pickup address</label>
+        <textarea id="pickup" rows={3} value={details.pickup} onChange={(e) => change("pickup", e.target.value)}
+          className="mt-1 block w-full rounded border p-3" />
+        {errors.pickup && <p className="text-red-700">{errors.pickup}</p>}
       </div>
       <button type="submit" className="rounded bg-slate-900 px-4 py-3 text-white">
-        Check draft details
+        Check details
       </button>
-      {checked && <p role="status">Draft checked. Nothing has been sent or saved.</p>}
+      {checked && <p role="status">Details look fine. Nothing was sent or saved.</p>}
     </form>
   );
 }
 ```
 
-These are **uncontrolled fields**: the browser holds their values, and we read them on submit. That is a valid choice when no other component needs live field values. React still owns the errors and draft-check feedback.
+Read the new pieces:
+- `change("name", value)` is the same trick as Day 9: `{ ...details, [field]: value }` copies the object and replaces one key chosen by the variable `field`.
+- `onlyDigits` goes through the text one character at a time. `"5" >= "0" && "5" <= "9"` is true. A letter fails.
+- `.trim()` removes spaces at the ends, so `"   "` does not count as a name.
+- A phone number is **text**, not a number. Use `type="tel"`, never `type="number"`, because numbers lose leading zeros and show spin arrows.
+- This phone rule is only for practice. Real phone checks need to handle other countries and confirm the phone really works.
 
-The phone rule is a clearly labeled prototype restriction, not proof that a phone exists or belongs to the traveler. International numbers, verification, consent and production address rules need separate requirements. Do not use `type="number"` for a phone number.
-
-## Step 5: Verify (25 min)
+## Step 5: Check it (25 min)
 
 ```bash
 npm run lint
 npm run typecheck
 npm run build
+npm run dev
 ```
 
-Browser checks:
-1. Choose a car; route criteria and option ID reach `/trip-details`.
-2. Refresh the details URL; the selection still loads.
-3. Change the option ID to nonsense, duplicate it, or choose a car too small for the passengers: useful feedback.
-4. Add `price=1` to the URL: the displayed sample fare does not change.
-5. Submit blank details: field errors appear.
-6. Use fictitious valid-format details: feedback says **nothing sent or saved**.
-7. Edit a field: the old "Draft checked" feedback disappears.
-8. Back to options preserves search criteria. Refreshing the details page may lose private draft fields; that is intentional today.
-9. Inspect the URL and network: no private details in query strings, no booking POST, no local-storage writes.
+1. Choose a car. The address becomes `/trip-details?...&option=...`.
+2. Refresh the page. The same car still shows.
+3. Change `option=` in the URL to nonsense, or pick a car too small for the group: the page asks you to choose again.
+4. Add `&price=1` to the address. The shown price does not change.
+5. Submit the empty form: a message under each field.
+6. Fill in made-up details in the right format: "Nothing was sent or saved."
+7. Type in a field after a success: the success message disappears.
+8. Look at the address bar and the Network tab: no name, phone or address anywhere.
 
-## Break it / common errors
-- Remove `event.preventDefault()`: the browser may submit the form's fields to the current URL. Restore it; do not send private data using a GET form.
-- Forget an input's `name`: `FormData.get()` returns `null`.
-- Look up the vehicle in the unfiltered list: a too-small car can be selected. Restore capacity-aware lookup.
-- Never show "Booking confirmed" for this local exercise.
+Use made-up details only.
+
+## Break it on purpose (5 min)
+- Remove `event.preventDefault()`: the page reloads on submit. Put it back.
+- Search the whole car list instead of `options`: a too-small car can be chosen. Put it back.
+- Change `.length !== 10` to `=== 10`: the phone rule reverses. Put it back.
+
+## Common errors
+- `Cannot read properties of undefined`: `selected` was not found. Check you return early when `!selected`.
+- Typing in a field does nothing: the input needs both `value` and `onChange`.
+- The page says "Check your search" after clicking a car: confirm the link includes all four search values. Look at `searchToQuery`.
 
 ## Finish (20 min)
-- [ ] Selection is revalidated on direct entry.
-- [ ] Private fields stay out of URLs and persistent storage.
-- [ ] Labels, error associations and keyboard submit work.
-- [ ] No real booking is implied; validation commands pass.
+- [ ] The chosen car still works after a refresh or when the address is opened directly.
+- [ ] Private details never appear in the address bar.
+- [ ] Labels are connected to inputs, and the form can be submitted with the keyboard.
+- [ ] No message says "booked" or "confirmed". Lint, typecheck and build pass.
 
 ```bash
 git add src
-git commit -m "Day 13: validated trip selection and local details draft"
+git commit -m "Day 13: choose a car and fill a practice details form"
 git push -u origin day-13
 ```
 
-PR into `develop`, wait for CI, merge. Write `docs/day-13.md`: URL versus local state, what survives refresh, and what a real booking endpoint must do.
+PR into `develop`, wait for CI, merge. Write `docs/day-13.md`: what travels in the URL versus what stays in the form, and what is lost when you refresh.
 
-## System design corner (10 min): Multi-step state
-URLs suit public trip criteria. Browser memory suits temporary private drafts. Server storage suits authoritative booking records. Adding persistence later means addressing consent, retention, access control and stale drafts, not simply placing everything in local storage.
+## System design corner (10 min): Where does each piece of data live?
+- **In the URL:** public choices, easy to share and to refresh.
+- **In browser memory (state):** a temporary private draft. It is lost on refresh.
+- **On the server (a database):** the real booking. Later lessons add it, together with the questions of who may read it and how long you keep it.
 
 ## DSA (optional, 20 min): Climbing Stairs
-For `n` steps, with moves of 1 or 2, implement `climbStairs(n: number): number`.
-- Use `ways(0) = 1`, `ways(1) = 1`; each next value is the previous two added.
-- Expected: `n=2` -> 2; `n=3` -> 3; `n=5` -> 8.
-- Use two running values: O(n) time, O(1) extra space. Limit this exercise to integers from 0 to 40.
-- This is an algorithm analogy, not how you model a booking workflow.
+You can climb 1 or 2 steps at a time. Write `climbStairs(n: number): number`, the number of ways to reach step `n`.
+- `ways(0) = 1`, `ways(1) = 1`. After that, each value is the sum of the previous two.
+- `n=2` gives 2, `n=3` gives 3, `n=5` gives 8.
+- O(n) time with two running values.
 
 ## Interview Q&A
-1. **Controlled versus uncontrolled?** React owns each value versus the browser holding it until read.
-2. **Why revalidate selection?** URLs can be edited and data may change between steps.
-3. **Why no client-provided fare?** Price authority belongs on the server.
-4. **Behavioral:** Explain a deliberate prototype limitation and how the UI makes it clear.
+1. **Why use a `Link` rather than a button to go to the next page?** A link is real navigation: it works with the keyboard, can open in a new tab and can be shared.
+2. **Why check the car again on the details page?** The address can be edited, so the page cannot trust it.
+3. **Why not put the price in the URL?** Anyone can change it. The price is looked up from our own data.
+4. **Behavioral:** Describe a time you left a feature deliberately simple, and how you made that clear to users.
 
 Next: [Day 14](./day-14.md).
