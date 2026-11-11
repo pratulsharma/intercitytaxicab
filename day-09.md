@@ -100,11 +100,11 @@ git switch -c day-09
 
 ## Step 3: The validation rules as a pure function (25 min)
 - **What:** one function that takes a search and today's date and returns a message for each wrong field.
-- **Why:** validation rules are business rules. As a pure function they are easy to test without a browser, and on Day 11 and Day 19 we reuse the same rules (the server must check again, because the browser can't be trusted).
+- **Why:** validation rules are business rules. As a pure function they are easy to test without a browser, and on Day 11 we tidy them and on Day 19 we reuse the same rules (the server must check again, because the browser can't be trusted).
 - **How:** create `src/lib/validateSearch.ts`:
   ```ts
   // WHAT: Checks a search and returns a message for every field that is wrong.
-  // WHY:  The form shows these messages (Day 9). On Day 11 the same rules become one shared, simple function and on
+  // WHY:  The form shows these messages (Day 9). On Day 11 we tidy the rules into one plain function and on
   //       Day 19 the server runs the same checks again, because the browser can't be trusted.
   // HOW:  A pure function: same input gives the same output. "today" is passed in instead of
   //       read inside, which keeps it predictable and easy to test.
@@ -698,7 +698,7 @@ flowchart LR
   X[Anyone with curl or a script] -.->|skips the browser| N
 ```
 - **Browser validation is for the user's convenience.** It saves a round trip and gives instant messages. It can be bypassed in seconds (dev tools, curl, a script).
-- **Server validation is the real gate.** Everything that crosses from outside into your system is checked again, where nobody can tamper with it. On Day 11 the same rules become one shared function that the results page uses too, and on Day 19 the API runs them again.
+- **Server validation is the real gate.** Everything that crosses from outside into your system is checked again, where nobody can tamper with it. On Day 11 we tidy these rules into one plain function, and on Day 19 the API runs them again.
 - One shared rule file (`validateSearch.ts`) means the two checks can't disagree.
 - **Say aloud:** "If browser validation is easy to bypass, why do we still write it?"
 

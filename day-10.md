@@ -13,13 +13,13 @@
 ## Recall (10 min)
 1. Who owns the passenger count after Day 9?
 2. Why does a controlled input need `onChange`?
-3. Why must the server validate even if the browser already did?
+3. Why is `passengers=4` in a URL text and not a number?
 
 <details><summary>Answers</summary>
 
 1. `SearchForm`, the closest common parent.
 2. Its displayed value comes from state, which must be updated.
-3. Anyone can edit a URL or bypass your form.
+3. A URL is only text. We must turn it into a number ourselves.
 </details>
 
 Take three older cards from [review-and-recall.md](./review-and-recall.md).
@@ -36,7 +36,7 @@ SearchForm state
         |
         | Next.js matches src/app/results/page.tsx
         v
-Read strings -> reject malformed input -> validate -> pickOptions -> HTML
+Read strings -> turn them into a search -> pickOptions -> HTML
 ```
 
 Use a future date relative to the day you do the exercise, not necessarily the example date.
@@ -118,7 +118,7 @@ export function searchToQuery(input: SearchInput): URLSearchParams {
 }
 ```
 
-Parsing answers "is it the right basic shape?" Validation answers "does it obey our rules?" Tomorrow, one shared `validateSearch` function checks the date and cities with plain `if` statements.
+Parsing answers "is it the right basic shape?" Validation (the form's rules from Day 9) answers "does it obey our rules?" Tomorrow we make the URL reading shorter and tidy the form's rules.
 
 ## Step 4: Navigate after a valid submit
 
@@ -151,44 +151,23 @@ Remove the now-unused `submitted` state, every `setSubmitted` call, the green su
 **How:**
 
 ```tsx
-// WHAT: Render validated search criteria and sample vehicle options.
+// WHAT: Render the search criteria and sample vehicle options.
 // WHY: The URL should survive refresh and be shareable.
-// HOW: Read request data inside Suspense, validate, then filter sample cars.
+// HOW: Read the URL inside Suspense, then filter sample cars.
 import { Suspense } from "react";
 import Link from "next/link";
-import { connection } from "next/server";
-import { todayAsIsoDate } from "@/lib/dates";
-import { findCity } from "@/lib/locations";
 import { describeSearch } from "@/lib/search";
 import { readSearchQuery, type SearchQuery } from "@/lib/searchQuery";
 import { pickOptions, sampleOptions } from "@/lib/sampleOptions";
-import { validateSearch } from "@/lib/validateSearch";
 
 type Props = { searchParams: Promise<SearchQuery> };
 
 async function Results({ searchParams }: Props) {
-  await connection();
   const parsed = readSearchQuery(await searchParams);
   if (!parsed.success) {
     return <p role="alert">{parsed.message} <Link href="/">Edit search</Link></p>;
   }
   const input = parsed.data;
-  const errors = validateSearch(input, todayAsIsoDate());
-  if (!findCity(input.from)) errors.from = "Choose a supported starting city.";
-  if (!findCity(input.to)) errors.to = "Choose a supported destination.";
-
-  if (Object.keys(errors).length > 0) {
-    return (
-      <section>
-        <h1 className="text-2xl font-bold">Check your search</h1>
-        <ul>{Object.entries(errors).map(([field, message]) => (
-          <li key={field}>{message}</li>
-        ))}</ul>
-        <Link href="/">Edit search</Link>
-      </section>
-    );
-  }
-
   const options = pickOptions(sampleOptions, input.passengers);
   return (
     <section>
@@ -224,8 +203,7 @@ export default function ResultsPage(props: Props) {
 **Read the unfamiliar lines**
 - `searchParams` is a promise in this project's Next.js version: `await` it before reading fields.
 - `Suspense` lets request-dependent content have a loading fallback. Keep the request read inside its child; the app has Cache Components enabled.
-- `connection()` explicitly waits for a request before reading the current clock. We are not caching today's date as static HTML.
-- On the server, `todayAsIsoDate()` uses the server's timezone. For this prototype accept that limitation; the real booking rules must consistently use the operator's timezone (India), not whichever timezone the server happens to use.
+- The form already checked the search before sending the user here (Day 9). This page only reads the URL and shows cars. If someone edits the URL by hand to something odd, they simply see "No sample vehicles fit this group".
 - No `"use client"` is needed for this page. The form needs browser interaction; the page can prepare HTML on the server.
 
 **Check your existing helpers:** `describeSearch` must look up `input.to` for the destination, not `input.from` twice. `pickOptions` must use `option.seats >= passengers`, not `>`. A car with exactly four seats fits four passengers. Keep your own sample IDs and capacities; do not assume they match the reference's Sedan/SUV/Tempo data.
@@ -243,8 +221,8 @@ npm run dev
 2. Refresh: the same search appears.
 3. Paste the URL in a new tab: same criteria and cars.
 4. Change passengers to exactly one vehicle's capacity: that car still appears.
-5. Edit the URL to `passengers=2.5`, `passengers=`, or a duplicated `passengers`: clear invalid-search feedback.
-6. Try unknown cities, identical cities, a past date and missing fields: no results.
+5. Edit the URL to `passengers=2.5`, `passengers=`, or a duplicated `passengers`: a clear message, or "No sample vehicles fit this group".
+6. Try an unknown city, a past date or a missing field: the page does not crash.
 7. Browser Back returns to the home page; do not assume client form values survive every full reload.
 
 ## Week 2 checkpoint (20 min, no notes first)
@@ -256,7 +234,7 @@ npm run dev
 6. Why use a functional setter when depending on previous state?
 7. What route does `app/results/page.tsx` create?
 8. Is `passengers=4` a string or a number initially?
-9. Why validate a shared URL?
+9. Why can't we trust a shared URL completely?
 10. What does `"use client"` mark?
 
 <details><summary>Answers</summary>

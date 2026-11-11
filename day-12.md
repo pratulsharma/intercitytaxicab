@@ -1,32 +1,30 @@
 # Day 12: Result cards, and what to show when things go wrong (3h)
 
-**Goal:** show the cars as clear cards, and make sure every outcome has a visible screen: results, no cars, loading, and an unexpected error.
+**Goal:** show the cars as clear cards, and make sure every outcome has a visible screen: cars, no cars, loading, and an unexpected error.
 **New today (max 2):** a reusable card component; the `loading.tsx` and `error.tsx` files.
-**Reused:** props, `.map()`, the results page, `validateSearch`, Tailwind.
+**Reused:** props, `.map()`, the results page, Tailwind.
 **Branch:** `day-12`, from `develop`.
 **Time:** recall 10 min; sketch 20; build 60; try every state 30; PR and notes 25; design 10; optional DSA 20 = 175 min.
 
 **Prerequisite:** [Day 11](./day-11.md). Run commands inside `shubh-yatra-cabs`.
 
 ## Recall (10 min)
-1. What does `validateSearch` return when a search is fine?
-2. Why does `readSearchFromUrl` not complain about bad values itself?
+1. What does `readSearchFromUrl` give back?
+2. What does `pickOptions` return when no car fits?
 3. What does `key` do when you `.map()` a list in React?
 
 <details><summary>Answers</summary>
 
-1. `{}`, an empty object.
-2. It only turns text into a search object. `validateSearch` does the judging, so each function has one job.
+1. A search object: `{ from, to, date, passengers }`, with `passengers` as a number.
+2. An empty list, `[]`.
 3. It helps React tell the list items apart. Use a stable unique value, such as `option.id`.
 </details>
 
-## Picture: four outcomes, not one
+## Picture: three outcomes, not one
 
 ```mermaid
 flowchart TD
-  A[Results page opens] --> B{Is the search valid?}
-  B -->|no| C["Check your search<br/>(messages + Edit search link)"]
-  B -->|yes| D{Waiting for the page?}
+  A[Results page opens] --> D{Waiting for the page?}
   D -->|yes| L["Loading message"]
   D -->|no| E{Any cars fit?}
   E -->|yes| F["Cards"]
@@ -34,9 +32,8 @@ flowchart TD
   A -.->|something breaks| H["Error screen with Try again"]
 ```
 
-Three things that are easy to mix up:
-- **Invalid search:** the user typed something wrong. Tell them what to fix.
-- **No cars:** the search was fine, there are just no matches. That is not an error.
+Two things that are easy to mix up:
+- **No cars:** the page worked, there are just no matches. That is not an error.
 - **Error:** something broke unexpectedly. Never show this as "no cars", because that hides the problem.
 
 ## Step 1: Branch and sketch (20 min)
@@ -175,7 +172,6 @@ npm run dev
 | State | How to see it | Expected |
 |---|---|---|
 | Cards | A valid future search for 2 passengers | One card per car, with seats and price |
-| Invalid search | Edit the URL: `from=nowhere` | "Check your search" with the message, **not** the error screen |
 | No cars | Temporarily change the page to `const options: CarOption[] = [];` | "No sample cars fit this group." |
 | Error | Temporarily add `throw new Error("test");` at the top of `Results` | The error screen with **Try again** |
 | Loading | Temporarily add `await new Promise((r) => setTimeout(r, 1500));` at the top of `Results` | "Loading cab options..." for 1.5 s, then the cards |
@@ -195,7 +191,7 @@ In dev mode a red error overlay may appear over the error screen. Close it with 
 - The error screen never appears: the throw must happen while the page draws, not inside a click handler.
 
 ## Finish (25 min)
-- [ ] All five states were seen, and every temporary line was removed.
+- [ ] All four states were seen, and every temporary line was removed.
 - [ ] Tab through the page with the keyboard. The links and buttons are reachable.
 - [ ] Looks fine on a narrow window.
 - [ ] Lint, typecheck and build pass.
