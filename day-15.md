@@ -111,7 +111,7 @@ Use made-up details only. Try it on a computer and on your phone.
 | A valid future search | The address becomes `/results?...` and cars show |
 | Refresh the page, or open the address in a new tab | Same search, same cars |
 | Choose a car | The details page shows it, with the same price |
-| Edit the address to a nonsense car or city | A helpful message, no crash |
+| Edit the address to a nonsense car name | A helpful message, no crash |
 | Submit the empty details form | Messages under the fields |
 | Submit made-up valid details | "Nothing was sent or saved." |
 | Look at the address bar | No name, phone or address in it |
@@ -119,9 +119,9 @@ Use made-up details only. Try it on a computer and on your phone.
 Open the browser console and look for red errors. Do not push the deliberate errors from Day 12 to a shared preview.
 
 ## Week 3 checkpoint (20 min, no notes first)
-1. Why does one function check the search for both the form and the results page?
-2. Why is the form's check not enough on its own?
-3. What is the difference between an invalid search, "no cars" and an error?
+1. Where is the search checked before the user reaches the results page?
+2. Why does a URL value like `passengers=4` need turning into a number?
+3. What is the difference between "no cars" and an error?
 4. Why is a sample price not a real price?
 5. Why keep names and phone numbers out of the URL?
 6. Why test the case "exactly enough seats"?
@@ -130,9 +130,9 @@ Open the browser console and look for red errors. Do not push the deliberate err
 
 <details><summary>Answers</summary>
 
-1. So the two can never disagree, and a change is made once.
-2. A browser can be changed or bypassed. The server must check again.
-3. Invalid: the input is wrong. No cars: a normal result with zero matches. Error: something broke.
+1. In the form on the home page (`validateSearch`).
+2. A URL is only text, so `"4"` must become the number 4 (`readSearchFromUrl`).
+3. No cars: a normal result with zero matches. Error: something broke.
 4. It is a placeholder, not a quote from a real price list.
 5. URLs are saved in history and logs and can be shared.
 6. It catches `>` versus `>=`.

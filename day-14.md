@@ -162,14 +162,6 @@ test("yesterday is not allowed", () => {
   expect(errors.date).toBeDefined();
 });
 
-test("text that is not a date is not allowed", () => {
-  expect(validateSearch({ ...good, date: "hello" }, today).date).toBeDefined();
-});
-
-test("an unknown city is not allowed", () => {
-  expect(validateSearch({ ...good, from: "nowhere" }, today).from).toBeDefined();
-});
-
 test("pick-up and drop must be different", () => {
   expect(validateSearch({ ...good, to: good.from }, today).to).toBeDefined();
 });

@@ -1,39 +1,39 @@
-# Day 11: One simple validation function, used everywhere (3h)
+# Day 11: Simpler code: a short URL reader and tidy form rules (3h)
 
-**Goal:** check a search in **one place**, with plain `if` statements, so the form and the results page follow the same rules.
-**New today (max 2):** reading the URL the simple way; one shared rule function.
+**Goal:** make the code shorter and easier to read. The results page reads the URL with a short function, and the form's rules sit in one plain `if` list.
+**New today (max 2):** reading the URL the simple way; writing rules as plain `if / else if`.
 **Reused:** functions, `if / else if`, objects, `SearchErrors`, the form from Day 9, the results page from Day 10.
 **Branch:** `day-11`, from `develop`.
-**Time:** recall 10 min; practice 20; build 65; browser checks 30; PR and notes 25; design 10; optional DSA 20 = 180 min.
+**Time:** recall 10 min; practice 20; build 60; browser checks 25; PR and notes 25; design 10; optional DSA 20 = 170 min.
 
 **Prerequisite:** [Day 10](./day-10.md). Run commands inside `shubh-yatra-cabs`. No new library is needed today.
 
-> **Why this lesson changed.** Earlier versions used a validation library. For a beginner it adds a new tool, new words and a lot of indirection. Plain `if` statements do the same job and you can read every line. Libraries make sense later, when you already know what they replace.
+> **Why this lesson is simple.** Earlier versions used a validation library and checked the search again on the results page. For a beginner that is a lot. Today the form checks the search (Day 9), and the results page just reads the URL and shows cars.
 
 ## Recall (10 min)
 1. Why is a value in a URL always text, even if it looks like a number?
 2. What does `validateSearch` return when everything is fine?
-3. Why do we check the search again on the results page, when the form already checked it?
+3. Which page checks the search before the user is sent to `/results`?
 
 <details><summary>Answers</summary>
 
 1. A URL is only text. `passengers=4` arrives as `"4"`.
 2. An empty object, `{}`.
-3. Anyone can edit a URL by hand, so the page cannot trust what arrives.
+3. The form on the home page (Day 9).
 </details>
 
-## Picture: one set of rules, two entrances
+## Picture: who does what
 
 ```mermaid
 flowchart LR
   F[Form values] --> V[validateSearch<br/>plain if statements]
-  U[URL text] --> R[readSearchFromUrl<br/>turn text into a search] --> V
-  V --> Q{any errors?}
-  Q -->|no| OK[go on / show results]
-  Q -->|yes| M[show a message<br/>under each wrong field]
+  V -->|no errors| P[go to /results?...]
+  V -->|errors| M[show a message<br/>under each wrong field]
+  P --> R[readSearchFromUrl<br/>turn URL text into a search] --> C[show the cars]
 ```
 
-Both entrances end in the **same** `validateSearch` function. That is how the form and the results page can never disagree.
+- The **form** checks the rules (`validateSearch`).
+- The **results page** only reads the URL (`readSearchFromUrl`) and shows the cars.
 
 ## Step 1: Branch (5 min)
 
@@ -89,7 +89,7 @@ console.log(checkPerson("Asha", 30));  // {}
 ## Step 3: Read the URL the simple way (20 min)
 
 **What:** replace the body of `src/lib/searchQuery.ts` with a shorter version.
-**Why:** a URL gives us text. We turn that text into a `SearchInput` object **without judging it yet**. Judging is the job of `validateSearch` (Step 4). Splitting the jobs keeps each one small.
+**Why:** a URL gives us text. We turn that text into a `SearchInput` object, the same shape the form builds. Keeping this job small and separate makes it easy to read.
 **How:** first a tiny example of the problem:
 
 ```ts
@@ -101,14 +101,14 @@ query.passengers; // "4"         (text, not the number 4)
 query.to;         // undefined   (not in the URL)
 ```
 
-Our job is to turn that into the same object the form builds: `{ from, to, date, passengers }`, with `passengers` as a number. If something is missing we use an empty value, and `validateSearch` will complain about it later.
+Our job is to turn that into the same object the form builds: `{ from, to, date, passengers }`, with `passengers` as a number. If something is missing we use an empty value. The page then simply finds no matching cars.
 
 Replace the file:
 
 ```ts
 // WHAT: Turn URL text into a search object, and a search object back into URL text.
 // WHY: The results page and the form must read the same search.
-// HOW: Missing or odd values become "" (or 0). validateSearch reports the problem later.
+// HOW: Missing or odd values become "" (or 0 / NaN). The page then finds no matching cars.
 import type { SearchInput } from "@/lib/search";
 
 // The query part of a URL: each key has text, a list of text (repeated key), or nothing.
@@ -126,7 +126,7 @@ export function readSearchFromUrl(query: SearchQuery): SearchInput {
     from: getText(query.from),
     to: getText(query.to),
     date: getText(query.date),
-    // Number("") is 0, so we handle "" ourselves. Number("abc") is NaN, which validateSearch rejects.
+    // Number("") is 0, so we handle "" ourselves. Number("abc") is NaN, and no car fits NaN passengers.
     passengers: passengersText === "" ? 0 : Number(passengersText),
   };
 }
@@ -141,21 +141,20 @@ export function searchToQuery(input: SearchInput): URLSearchParams {
 }
 ```
 
-What disappeared compared with Day 10: the success/failure result type, the text-pattern checks and the "too large" check. They are not needed, because `validateSearch` now catches all of those problems with ordinary `if`s.
+What disappeared compared with Day 10: the success/failure result type, the text-pattern checks and the "too large" check. The results page does not need them. A bad value just means no car fits.
 
 `searchToQuery` is unchanged.
 
-## Step 4: One validation function (30 min)
+## Step 4: Tidy the form's rules (20 min)
 
-**What:** rewrite `src/lib/validateSearch.ts`.
-**Why:** all rules in one place, in a straight list you can read top to bottom.
+**What:** rewrite `src/lib/validateSearch.ts` as one plain list.
+**Why:** all the form's rules in one place, in a straight list you can read top to bottom.
 **How:**
 
 ```ts
 // WHAT: The rules for a cab search, as plain if statements.
-// WHY: The form and the results page both call this, so they always agree.
+// WHY: The form calls this before sending the user to the results page.
 // HOW: Check one field at a time. Put a message in `errors` for each problem.
-import { findCity } from "@/lib/locations";
 import type { SearchInput } from "@/lib/search";
 
 export type SearchErrors = Partial<Record<keyof SearchInput, string>>;
@@ -166,21 +165,15 @@ export const MAX_PASSENGERS = 30;
 export function validateSearch(input: SearchInput, today: string): SearchErrors {
   const errors: SearchErrors = {};
 
-  // From
   if (input.from === "") errors.from = "Please choose where you start.";
-  else if (!findCity(input.from)) errors.from = "We don't serve that city yet.";
 
-  // To
   if (input.to === "") errors.to = "Please choose where you are going.";
-  else if (!findCity(input.to)) errors.to = "We don't serve that city yet.";
   else if (input.to === input.from) errors.to = "Pick-up and drop must be different.";
 
-  // Date (YYYY-MM-DD text sorts in date order, so < and >= work on it)
+  // YYYY-MM-DD text sorts in date order, so < works on it
   if (input.date === "") errors.date = "Please choose a travel date.";
-  else if (Number.isNaN(new Date(input.date).getTime())) errors.date = "That date doesn't look right.";
   else if (input.date < today) errors.date = "Travel date can't be in the past.";
 
-  // Passengers
   if (
     !Number.isInteger(input.passengers) ||
     input.passengers < MIN_PASSENGERS ||
@@ -194,60 +187,41 @@ export function validateSearch(input: SearchInput, today: string): SearchErrors 
 ```
 
 Read it slowly, once per field:
-- **`if … else if … else if`** means "stop at the first problem for this field". A field can only show one message.
-- **`findCity`** is the helper you already wrote in `locations.ts`. If it finds nothing, the city is not one we serve.
-- **`new Date("abc")`** gives an "Invalid Date". Its `getTime()` is `NaN`, so `Number.isNaN(...)` catches text that is not a date. (A date like `2027-02-30` rolls over to March in JavaScript. The date picker in the form only offers real dates, and we accept that for the prototype.)
-- **`input.date < today`** compares two `YYYY-MM-DD` texts. Because year comes first, the text order is the date order. That is why Day 9 built `today` in this exact format.
+- **`if … else if`** means "stop at the first problem for this field". A field can only show one message.
+- **`input.date < today`** compares two `YYYY-MM-DD` texts. Because the year comes first, the text order is the date order. That is why Day 9 built `today` in this exact format.
 - **`!Number.isInteger(...) || < MIN || > MAX`** reads as "not a whole number, or too small, or too big".
+- We do not check that a city exists or that a date is real. The form only offers real cities in the dropdown and real dates in the date picker.
 
 The function takes `today` as an input instead of reading the clock itself. That keeps it easy to test (Day 14).
 
 The form still works unchanged, because the function name, inputs and the `SearchErrors` type are the same as before. Keep your own error wording if you prefer it.
 
-## Step 5: Use it on the results page (15 min)
+## Step 5: Use the short reader on the results page (15 min)
 
 **What:** shorten the top of the `Results` function in `src/app/results/page.tsx`.
-**Why:** the page used to do its own city checks. Now one function does everything.
-**How:** change the imports, then the first lines of `Results`:
+**Why:** the page only needs the search and the cars. The Day 10 version had a result type and a message for each problem.
+**How:** change the import, then the first lines of `Results`:
 
 ```tsx
-// Remove these two imports:
-//   import { findCity } from "@/lib/locations";
+// Replace this import:
 //   import { readSearchQuery, type SearchQuery } from "@/lib/searchQuery";
-// Use these instead:
+// with:
 import { readSearchFromUrl, type SearchQuery } from "@/lib/searchQuery";
 ```
 
 ```tsx
 async function Results({ searchParams }: Props) {
-  await connection();
   const input = readSearchFromUrl(await searchParams);       // text -> search object
-  const errors = validateSearch(input, todayAsIsoDate());    // check it
-
-  if (Object.keys(errors).length > 0) {
-    return (
-      <section>
-        <h1 className="text-2xl font-bold">Check your search</h1>
-        <ul>
-          {Object.entries(errors).map(([field, message]) => (
-            <li key={field}>{message}</li>
-          ))}
-        </ul>
-        <Link href="/">Edit search</Link>
-      </section>
-    );
-  }
-
   const options = pickOptions(sampleOptions, input.passengers);
   // ...the rest of the page stays the same
 }
 ```
 
-Delete the old `if (!parsed.success)` block and the two manual `findCity` lines. There is no `parsed.success` any more. `readSearchFromUrl` always gives back a search object.
+Delete the old `if (!parsed.success)` block. There is no `parsed.success` any more, because `readSearchFromUrl` always gives back a search object. If someone edits the URL to something odd, they see "No sample vehicles fit this group" and can use **Change search**.
 
 **Fix a bug you may still have:** in `sampleOptions.ts`, `pickOptions` must use `r.seats >= passengers`. A 4-seat car fits 4 people. If yours says `>`, change it.
 
-## Step 6: Check it in the browser (30 min)
+## Step 6: Check it in the browser (25 min)
 
 ```bash
 npm run lint
@@ -256,23 +230,23 @@ npm run build
 npm run dev
 ```
 
-Open each URL. Replace dates with a future date in `YYYY-MM-DD` form:
+Part 1, the form (Day 9's checks):
+1. Submit an empty form: a message under each field.
+2. Pick the same city twice: "Pick-up and drop must be different."
+3. Pick a past date: "Travel date can't be in the past." (The picker also greys past dates out.)
+4. Set passengers outside 1 to 30: the passengers message.
+5. Fill the form correctly: you land on `/results?...` with cars.
+
+Part 2, the results page. Use a future date:
 
 | Address | Expected |
 |---|---|
 | `/results?from=haridwar&to=badrinath&date=2027-01-20&passengers=2` | Cars shown |
-| same, but `passengers=0` | "Choose between 1 and 30 passengers." |
-| same, but `passengers=abc` | The same passengers message |
-| same, but `passengers=` (empty) | The same passengers message |
-| same, but `from=nowhere` | "We don't serve that city yet." |
-| same, but `to=haridwar` (same as from) | "Pick-up and drop must be different." |
-| same, but `date=2020-01-01` | "Travel date can't be in the past." |
-| same, but `date=hello` | "That date doesn't look right." |
-| `/results` (nothing) | Several messages, one for each field |
+| same, but `passengers=abc` | "No sample vehicles fit this group", no crash |
+| same, but `passengers=` (empty) | The same, no crash |
+| `/results` (nothing) | The same, no crash |
 
-Then repeat Day 9's form checks. The form must show the same kinds of messages.
-
-If a row does not match, read your `if` for that field and check the **order**: a message from an earlier `if` can hide a later one.
+If a row does not match, read the first lines of `Results` and `readSearchFromUrl`.
 
 ## Break it on purpose (5 min)
 - Change `<` to `>` in the date check: past dates are now accepted. Restore it.
@@ -281,24 +255,24 @@ If a row does not match, read your `if` for that field and check the **order**: 
 
 ## Common errors
 - `Cannot find name 'validateSearch'`: check the import and that you export the function.
-- Everything is an error: check that `today` is `YYYY-MM-DD`. Run `console.log(todayAsIsoDate())`.
-- Messages show for fields you did not touch on the results page: that is correct for a bare `/results`. The page has no values, so every field is empty.
+- Every date is an error: check that `today` is `YYYY-MM-DD`. Run `console.log(todayAsIsoDate())`.
+- `Property 'success' does not exist`: you still have the old `parsed.success` code on the results page. Remove it.
 
 ## Finish (25 min)
-- [ ] Every row in the browser table behaves as expected.
-- [ ] The form, Clear button and field messages still work.
+- [ ] The form checks still work, and a valid search goes to `/results`.
+- [ ] Every row in the results table behaves as expected.
 - [ ] Lint, typecheck and build pass.
 
 ```bash
 git add src sandbox/day-11-practice.ts
-git commit -m "Day 11: one simple validation function"
+git commit -m "Day 11: short URL reader and tidy form rules"
 git push -u origin day-11
 ```
 
-Open a PR into `develop`, wait for CI, merge. Write `docs/day-11.md`: what `readSearchFromUrl` does, what `validateSearch` does and why they are separate, one URL you tried and the message it showed.
+Open a PR into `develop`, wait for CI, merge. Write `docs/day-11.md`: what `readSearchFromUrl` does, what `validateSearch` does and why they are separate, one URL you tried and what the page showed.
 
-## System design corner (10 min): Never trust the client
-A browser can send anything: a hand-edited URL, a changed form, a script. The form's checks are for the user's comfort. The server's checks are for safety. Keeping the rules in one function means you write them once and use them in both places. Checking is not the same as logging in: a valid request still has to be allowed to do what it asks, and prices must always be looked up on the server.
+## System design corner (10 min): The browser is not the boss
+A browser can send anything: a hand-edited URL, a changed form, a script. For a demo with sample data, that is harmless, so today the form checks the search for the user's comfort. When we build a real server API (Day 19), the **server** must check every request again, because that is the part that cannot be bypassed. Keep the rules in one function so the form and the server can use the same ones.
 
 ## DSA (optional, 20 min): Valid Palindrome
 Write `isPalindrome(text: string): boolean` in `sandbox/dsa/day-11.ts`.
@@ -308,8 +282,8 @@ Write `isPalindrome(text: string): boolean` in `sandbox/dsa/day-11.ts`.
 - O(n) time.
 
 ## Interview Q&A
-1. **Why check in two places?** The form check is quick feedback for the user. The server check protects the app, because anything from a browser can be changed.
-2. **Why keep the rules in one function?** The two places can never disagree, and a change is made once.
+1. **Why check input in a form?** It gives the user quick, friendly messages.
+2. **Why must a real server check again?** Anything from a browser can be changed or bypassed.
 3. **Why does `validateSearch` take `today` as an input?** It makes the function predictable and easy to test.
 4. **Behavioral:** Tell me about a time you made code simpler. What did you remove, and how did you know it still worked?
 

@@ -2,7 +2,7 @@
 
 **Goal:** choose a car on the results page, open a `/trip-details` page, and fill in a practice details form. Nothing is sent or saved.
 **New today (max 2):** passing a choice to the next page in the URL; a form with several text fields.
-**Reused:** `Link`, props, `useState` and controlled inputs (Day 9), `validateSearch`, `readSearchFromUrl`.
+**Reused:** `Link`, props, `useState` and controlled inputs (Day 9), `readSearchFromUrl`, `pickOptions`.
 **Branch:** `day-13`, from `develop`.
 **Time:** recall 10 min; sketch 15; build 80 min; checks 25; PR and notes 20; design 10; optional DSA 20 = 180 min.
 
@@ -25,7 +25,7 @@
 ```mermaid
 flowchart TD
   R["/results?from=..&to=..&date=..&passengers=2"] -->|click Choose this vehicle| T["/trip-details?from=..&to=..&date=..&passengers=2&option=suv"]
-  T --> V[check the search again, then find the car by its id]
+  T --> V[find the car by its id]
   V --> F[Trip summary + form: name, phone, pickup]
   F -->|Check details| M["'Details look fine. Nothing was sent or saved.'"]
 ```
@@ -96,45 +96,26 @@ Note the `{ ... return (...) }` block: when `.map` needs a few lines of work bef
 ## Step 3: The trip-details page (30 min)
 
 **What:** create `src/app/trip-details/page.tsx`.
-**Why:** someone can open this address directly, so the page must check everything itself.
-**How:** it reads the search, checks it, finds the car, and shows a summary. The `Suspense` and `connection()` parts are the same wrapper as the results page. Copy that pattern.
+**Why:** someone can open this address directly, so the page must find the car itself.
+**How:** it reads the search, finds the car, and shows a summary. The `Suspense` part is the same wrapper as the results page. Copy that pattern.
 
 ```tsx
 // WHAT: Show the chosen car and the details form.
-// WHY: The URL can be edited, so the page checks the search and the car again.
-// HOW: Read search -> validate -> find the car by id -> show summary and form.
+// WHY: The URL can be edited, so the page looks the car up itself.
+// HOW: Read the search -> find the car by id -> show summary and form.
 import { Suspense } from "react";
 import Link from "next/link";
-import { connection } from "next/server";
 import TripDetailsForm from "@/components/TripDetailsForm";
-import { todayAsIsoDate } from "@/lib/dates";
 import { formatPrice } from "@/lib/format";
 import { pickOptions, sampleOptions } from "@/lib/sampleOptions";
 import { describeSearch } from "@/lib/search";
 import { readSearchFromUrl, searchToQuery, type SearchQuery } from "@/lib/searchQuery";
-import { validateSearch } from "@/lib/validateSearch";
 
 type Props = { searchParams: Promise<SearchQuery> };
 
 async function TripDetails({ searchParams }: Props) {
-  await connection();
   const query = await searchParams;
   const input = readSearchFromUrl(query);
-  const errors = validateSearch(input, todayAsIsoDate());
-
-  if (Object.keys(errors).length > 0) {
-    return (
-      <section>
-        <h1 className="text-2xl font-bold">Check your search</h1>
-        <ul>
-          {Object.entries(errors).map(([field, message]) => (
-            <li key={field}>{message}</li>
-          ))}
-        </ul>
-        <Link href="/">Edit search</Link>
-      </section>
-    );
-  }
 
   // Cars that fit this group, then the one whose id is in the URL
   const options = pickOptions(sampleOptions, input.passengers);
@@ -305,7 +286,7 @@ Use made-up details only.
 ## Common errors
 - `Cannot read properties of undefined`: `selected` was not found. Check you return early when `!selected`.
 - Typing in a field does nothing: the input needs both `value` and `onChange`.
-- The page says "Check your search" after clicking a car: confirm the link includes all four search values. Look at `searchToQuery`.
+- After clicking a car you are asked to choose a car again: confirm the link includes the four search values and `option=`. Look at `searchToQuery`.
 
 ## Finish (20 min)
 - [ ] The chosen car still works after a refresh or when the address is opened directly.
